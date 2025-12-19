@@ -28,44 +28,16 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 sm:p-8">
+<body class="bg-gray-50 text-slate-800">
 
-    <div id="root" class="w-full max-w-md h-full"></div>
+    <div id="root" class="h-screen w-full flex flex-col md:flex-row overflow-hidden"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState } from 'https://esm.sh/react@18.2.0';
+        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
-        // Import all icons used in the original code
         import { 
-          Calendar, 
-          Plus, 
-          Trash2, 
-          CheckCircle, 
-          Wallet, 
-          LayoutDashboard, 
-          PlusCircle, 
-          List,
-          Layers,
-          Settings,
-          Sparkles,
-          TrendingDown,
-          CreditCard,
-          Globe,
-          AlertCircle,
-          ArrowRight,
-          ChevronDown,
-          ChevronUp,
-          Clock,
-          Check,
-          X,
-          AlertTriangle,
-          Tag,
-          History,
-          Activity,
-          ArrowUpRight,
-          RotateCcw,
-          FilePlus
+          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
         // --- TRANSLATIONS ---
@@ -142,7 +114,20 @@
             actionUnpaid: "Reverted",
             actionDeleted: "Deleted",
             actionDeletedTerm: "Deleted term",
-            close: "Close"
+            close: "Close",
+            editTitle: "Edit Record",
+            saveChanges: "Save Changes",
+            edit: "Edit",
+            actionEdited: "Edited",
+            actionSettings: "Updated Settings",
+            dataManagement: "Data Management",
+            backupRestore: "Backup & Restore",
+            backup: "Backup Data",
+            restore: "Restore Data",
+            restoreSuccess: "Data restored successfully.",
+            restoreError: "Invalid backup file or corrupt data.",
+            errorTitle: "Error",
+            successTitle: "Success"
           },
           tl: {
             dashboard: "Dashboard",
@@ -216,14 +201,27 @@
             actionUnpaid: "Binawi",
             actionDeleted: "Binura",
             actionDeletedTerm: "Binura ang term",
-            close: "Isara"
+            close: "Isara",
+            editTitle: "Baguhin ang Record",
+            saveChanges: "I-save ang Pagbabago",
+            edit: "Baguhin",
+            actionEdited: "Binago",
+            actionSettings: "Settings Updated",
+            dataManagement: "Pamamahala ng Data",
+            backupRestore: "Backup at Restore",
+            backup: "I-backup ang Data",
+            restore: "I-restore ang Data",
+            restoreSuccess: "Matagumpay na nai-restore.",
+            restoreError: "Hindi valid ang file o sira ang data.",
+            errorTitle: "May Error",
+            successTitle: "Tagumpay"
           }
         };
 
         function UtangTracker() {
           const [activeTab, setActiveTab] = useState('dashboard');
           const [logTab, setLogTab] = useState('ongoing'); 
-          const [showActivityLog, setShowActivityLog] = useState(false); // NEW STATE for Modal
+          const [showActivityLog, setShowActivityLog] = useState(false);
           const [lang, setLang] = useState('en');
           const t = translations[lang];
           const [paydays, setPaydays] = useState([15, 30]); 
@@ -233,12 +231,29 @@
           const [savedDescriptions, setSavedDescriptions] = useState(['Emergency Loan', 'Grocery', 'Internet Bill', 'Electricity', 'Water Bill']);
           const [activityLog, setActivityLog] = useState([]);
 
+          const fileInputRef = useRef(null);
+
           const [confirmModal, setConfirmModal] = useState({
             isOpen: false,
             title: '',
             message: '',
             type: 'neutral',
             onConfirm: () => {}
+          });
+
+          // NEW: Notification State for Alerts
+          const [notification, setNotification] = useState({
+            isOpen: false,
+            title: '',
+            message: '',
+            type: 'success' // 'success' or 'error'
+          });
+
+          const [editModal, setEditModal] = useState({
+            isOpen: false,
+            parentId: null,
+            currentTitle: '',
+            currentAmount: ''
           });
 
           const [debts, setDebts] = useState([
@@ -363,7 +378,7 @@
           const logAction = (type, title, details) => {
             const newLog = {
               id: Date.now(),
-              type, // 'add', 'pay', 'unpay', 'delete'
+              type, // 'add', 'pay', 'unpay', 'delete', 'edit', 'settings'
               title,
               details,
               timestamp: new Date()
@@ -384,6 +399,10 @@
             });
           };
 
+          const showAlert = (title, message, type = 'success') => {
+             setNotification({ isOpen: true, title, message, type });
+          };
+
           // --- HANDLERS ---
           const handleAddDebt = (e) => {
             e.preventDefault();
@@ -391,6 +410,7 @@
 
             if (!savedDescriptions.includes(newDebtName)) {
               setSavedDescriptions([...savedDescriptions, newDebtName]);
+              logAction('settings', 'New Description Saved', `Added "${newDebtName}" to quick list`);
             }
 
             const terms = parseInt(newDebtTerms) || 1;
@@ -452,8 +472,86 @@
             }));
           };
 
+          // --- BACKUP & RESTORE ---
+          const handleBackup = () => {
+              const data = {
+                  debts,
+                  paydays,
+                  savedDescriptions,
+                  activityLog,
+                  lang
+              };
+              const jsonStr = JSON.stringify(data, null, 2);
+              const blob = new Blob([jsonStr], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `debt_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              logAction('settings', 'Backup Created', 'Downloaded local backup file');
+          };
+
+          const handleRestore = (event) => {
+              const file = event.target.files[0];
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                  try {
+                      const data = JSON.parse(e.target.result);
+                      if (data.debts && Array.isArray(data.debts)) {
+                          setDebts(data.debts);
+                          if(data.paydays) setPaydays(data.paydays);
+                          if(data.savedDescriptions) setSavedDescriptions(data.savedDescriptions);
+                          if(data.activityLog) setActivityLog(data.activityLog);
+                          
+                          logAction('settings', 'Data Restored', 'Restored data from backup file');
+                          showAlert(t.successTitle, t.restoreSuccess, 'success');
+                      } else {
+                          showAlert(t.errorTitle, t.restoreError, 'error');
+                      }
+                  } catch (error) {
+                      console.error(error);
+                      showAlert(t.errorTitle, t.restoreError, 'error');
+                  }
+              };
+              reader.readAsText(file);
+              event.target.value = null; // Reset for subsequent restores
+          };
+
+          // --- EDIT FEATURE ---
+          const openEditModal = (group) => {
+              setEditModal({
+                  isOpen: true,
+                  parentId: group.parentId,
+                  currentTitle: group.title,
+                  currentAmount: group.terms[0]?.amount || 0
+              });
+          };
+
+          const saveEdit = () => {
+              const { parentId, currentTitle, currentAmount } = editModal;
+              const newAmount = parseFloat(currentAmount);
+
+              if(!currentTitle || !newAmount) return;
+
+              setDebts(prev => prev.map(d => {
+                  if (d.parentId === parentId) {
+                      return { ...d, title: currentTitle, amount: newAmount };
+                  }
+                  return d;
+              }));
+
+              logAction('edit', currentTitle, `Updated record. New Amount: ${formatPHP(newAmount)}`);
+              setEditModal({ isOpen: false, parentId: null, currentTitle: '', currentAmount: '' });
+          };
+
+
           const deleteSavedDescription = (desc) => {
             setSavedDescriptions(savedDescriptions.filter(d => d !== desc));
+            logAction('settings', 'Description Removed', `Removed "${desc}" from quick list`);
           };
 
           const confirmDelete = (id) => {
@@ -478,11 +576,15 @@
           };
 
           const togglePayday = (day) => {
+            let newPaydays;
             if (paydays.includes(day)) {
-              setPaydays(paydays.filter(d => d !== day));
+              newPaydays = paydays.filter(d => d !== day);
+              logAction('settings', 'Payday Removed', `Removed ${day} from schedule`);
             } else {
-              setPaydays([...paydays, day]);
+              newPaydays = [...paydays, day];
+              logAction('settings', 'Payday Added', `Added ${day} to schedule`);
             }
+            setPaydays(newPaydays);
           };
 
           const totalUnpaid = debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.amount, 0);
@@ -597,18 +699,18 @@
 
           // --- RENDERERS ---
           const renderDashboard = () => (
-            <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+            <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0">
               
               {/* Overview Cards */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-5 relative overflow-hidden shadow-lg shadow-indigo-200">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-5 relative overflow-hidden shadow-lg shadow-indigo-200">
                   <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-white opacity-10 rounded-full blur-xl"></div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-100 mb-1">{t.totalUnpaid}</p>
-                  <p className="text-2xl font-bold tracking-tight text-white">{formatPHP(totalUnpaid)}</p>
+                  <p className="text-2xl md:text-4xl font-bold tracking-tight text-white">{formatPHP(totalUnpaid)}</p>
                 </div>
-                <div className="bg-white rounded-3xl p-5 relative overflow-hidden border border-slate-100 shadow-sm">
+                <div className="col-span-1 lg:col-span-2 bg-white rounded-3xl p-5 relative overflow-hidden border border-slate-100 shadow-sm">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{t.totalPaid}</p>
-                  <p className="text-2xl font-bold tracking-tight text-slate-800">{formatPHP(totalPaid)}</p>
+                  <p className="text-2xl md:text-4xl font-bold tracking-tight text-slate-800">{formatPHP(totalPaid)}</p>
                   <div className="absolute bottom-4 right-4 text-green-500">
                     <CheckCircle className="w-5 h-5 opacity-50" />
                   </div>
@@ -623,9 +725,9 @@
                   </h3>
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {paydays.length === 0 ? (
-                    <div className="text-center p-8 border border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                    <div className="col-span-full text-center p-8 border border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
                       <p className="text-sm text-slate-400 font-medium">Please configure Paydays in Setup.</p>
                     </div>
                   ) : (
@@ -642,7 +744,7 @@
                           ${isOverdue 
                             ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-200' 
                             : hasAmount 
-                              ? 'bg-white border border-slate-100 text-slate-800 shadow-lg shadow-slate-100' 
+                              ? 'bg-white border border-slate-100 text-slate-800 shadow-lg shadow-slate-100 hover:shadow-xl hover:-translate-y-1' 
                               : 'bg-slate-50 border border-slate-100 text-slate-400'
                           }`}
                         >
@@ -657,7 +759,7 @@
                                       {formatDate(card.dateStr, { weekday: 'short', month: 'short', day: 'numeric' })}
                                   </span>
                                 </div>
-                                <p className={`text-4xl font-bold tracking-tighter ${isOverdue ? 'text-white' : 'text-slate-800'}`}>
+                                <p className={`text-3xl font-bold tracking-tighter ${isOverdue ? 'text-white' : 'text-slate-800'}`}>
                                   {formatPHP(card.amount)}
                                 </p>
                               </div>
@@ -711,7 +813,7 @@
           );
 
           const renderAddForm = () => (
-            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 max-w-2xl mx-auto">
               <div className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-50 p-5 rounded-3xl">
                 <div className="flex gap-4">
                   <div className="p-2.5 bg-white rounded-xl h-fit shadow-sm text-indigo-500">
@@ -723,7 +825,7 @@
                   </div>
                 </div>
               </div>
-              <form onSubmit={handleAddDebt} className="bg-white border border-slate-100 p-6 rounded-3xl shadow-xl shadow-slate-200/50 space-y-5">
+              <form onSubmit={handleAddDebt} className="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/50 space-y-6">
                 <h3 className="font-bold text-slate-800 text-lg mb-2">{t.newDebtTitle}</h3>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.debtName}</label>
@@ -747,7 +849,7 @@
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.amount}</label>
                     <div className="relative">
                       <span className="absolute left-4 top-3.5 text-slate-400 font-bold">₱</span>
-                      <input type="number" placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-8 pr-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300" value={newDebtAmount} onChange={(e) => setNewDebtAmount(e.target.value)} required />
+                      <input type="number" step="0.01" placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-8 pr-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300" value={newDebtAmount} onChange={(e) => setNewDebtAmount(e.target.value)} required />
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -770,10 +872,10 @@
           );
 
           const renderLogs = () => (
-            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 pb-20">
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 pb-20 md:pb-0">
               
               {/* Tabs - Only 2 now */}
-              <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm max-w-md">
                 {['ongoing', 'completed'].map(tabKey => (
                   <button 
                     key={tabKey}
@@ -788,9 +890,9 @@
                 ))}
               </div>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {(logTab === 'ongoing' ? ongoingLogs : completedLogs).length === 0 ? (
-                  <div className="text-center py-20 px-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/50">
+                  <div className="col-span-full text-center py-20 px-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/50">
                     <div className="bg-white p-4 rounded-full inline-block mb-3 shadow-sm">
                       <List className="w-8 h-8 text-slate-300" />
                     </div>
@@ -803,14 +905,25 @@
                     const paidTerms = group.terms.filter(t => t.isPaid).length;
                     const progress = (paidTerms / group.terms.length) * 100;
                     return (
-                      <div key={group.parentId} className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+                      <div key={group.parentId} className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md h-fit">
                         <div 
                           onClick={() => toggleGroupExpand(group.parentId)}
                           className="p-5 cursor-pointer relative"
                         >
                           <div className="flex justify-between items-start mb-4">
                             <div>
-                              <h4 className="font-bold text-lg text-slate-800">{group.title}</h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-lg text-slate-800">{group.title}</h4>
+                                <button 
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditModal(group);
+                                  }}
+                                  className="p-1 text-slate-300 hover:text-indigo-500 transition"
+                                >
+                                    <Edit2 className="w-3 h-3" />
+                                </button>
+                              </div>
                               <div className="flex items-center gap-2 mt-2">
                                 {!group.isFullyPaid ? (
                                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold flex items-center gap-1">
@@ -932,7 +1045,7 @@
           );
 
           const renderSettings = () => (
-            <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+            <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0 max-w-4xl">
               
               {/* Language */}
               <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
@@ -950,6 +1063,41 @@
                   <button onClick={() => setLang('tl')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'tl' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>PH</button>
                 </div>
               </div>
+
+               {/* Data Management */}
+               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+                    <div className="mb-4">
+                        <h2 className="text-lg font-bold text-slate-800 mb-1">{t.dataManagement}</h2>
+                        <p className="text-xs text-slate-400 font-medium">{t.backupRestore}</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button 
+                            onClick={handleBackup}
+                            className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition gap-2 group"
+                        >
+                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl group-hover:scale-110 transition">
+                              <Download className="w-6 h-6" />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700">{t.backup}</span>
+                        </button>
+                        <button 
+                            onClick={() => fileInputRef.current.click()}
+                            className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition gap-2 group"
+                        >
+                             <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl group-hover:scale-110 transition">
+                               <Upload className="w-6 h-6" />
+                             </div>
+                            <span className="text-xs font-bold text-slate-700">{t.restore}</span>
+                        </button>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleRestore} 
+                            className="hidden" 
+                            accept=".json"
+                        />
+                    </div>
+                </div>
 
               {/* Saved Descriptions Management */}
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
@@ -1008,9 +1156,180 @@
             </div>
           );
 
+          // Sidebar Navigation Component for Desktop
+          const SidebarNav = () => (
+              <div className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full p-6">
+                  <div className="mb-8 flex items-center gap-3 px-2">
+                      <div className="bg-indigo-600 p-2 rounded-xl">
+                          <Wallet className="w-6 h-6 text-white" />
+                      </div>
+                      <h1 className="text-xl font-black text-slate-800 tracking-tight">Debt Tracker</h1>
+                  </div>
+
+                  <div className="space-y-2">
+                      {[
+                          { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
+                          { id: 'add', icon: PlusCircle, label: t.add },
+                          { id: 'logs', icon: List, label: t.logs },
+                          { id: 'settings', icon: Settings, label: t.settings },
+                      ].map((item) => (
+                          <button
+                              key={item.id}
+                              onClick={() => setActiveTab(item.id)}
+                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200
+                              ${activeTab === item.id 
+                                  ? 'bg-indigo-50 text-indigo-600 shadow-sm' 
+                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                          >
+                              <item.icon className="w-5 h-5" />
+                              {item.label}
+                          </button>
+                      ))}
+                  </div>
+
+                  <div className="mt-auto pt-6 border-t border-slate-100">
+                      <button 
+                        onClick={() => setShowActivityLog(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all"
+                      >
+                          <History className="w-5 h-5" />
+                          {t.activity}
+                      </button>
+                  </div>
+              </div>
+          );
+
           return (
-            <div className="min-h-screen bg-gray-50 text-slate-800 font-sans flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative selection:bg-indigo-100 selection:text-indigo-900">
+            <>
+              {/* SIDEBAR (Desktop) */}
+              <SidebarNav />
+
+              {/* MAIN CONTENT AREA */}
+              <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-gray-50/50">
+                  
+                  {/* MOBILE HEADER */}
+                  <div className="md:hidden bg-white/80 backdrop-blur-xl pt-12 pb-4 px-6 sticky top-0 z-50 border-b border-slate-100/50 flex justify-between items-center">
+                    <div className="flex flex-col gap-1">
+                      <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">
+                        Debt Tracker
+                      </h1>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        {activeTab === 'dashboard' && t.dashboard} 
+                        {activeTab === 'add' && t.add} 
+                        {activeTab === 'logs' && t.logs} 
+                        {activeTab === 'settings' && t.settings}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setShowActivityLog(true)}
+                      className="p-3 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition active:scale-95"
+                    >
+                      <History className="w-5 h-5 text-slate-600" />
+                    </button>
+                  </div>
+
+                  {/* Desktop Header Title (Simple) */}
+                  <div className="hidden md:flex py-8 px-8 items-center justify-between">
+                     <div>
+                        <h2 className="text-2xl font-bold text-slate-800">
+                            {activeTab === 'dashboard' && t.dashboard}
+                            {activeTab === 'add' && t.addRecord}
+                            {activeTab === 'logs' && t.debtLogs}
+                            {activeTab === 'settings' && t.settingsHeader}
+                        </h2>
+                        <p className="text-slate-400 text-sm font-medium">Manage your finances efficiently</p>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <span className="bg-white px-3 py-1.5 rounded-full text-xs font-bold text-slate-500 border border-slate-200 shadow-sm">
+                            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </span>
+                     </div>
+                  </div>
+
+                  {/* SCROLLABLE CONTENT */}
+                  <div className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide">
+                    {activeTab === 'dashboard' && renderDashboard()}
+                    {activeTab === 'add' && renderAddForm()}
+                    {activeTab === 'logs' && renderLogs()}
+                    {activeTab === 'settings' && renderSettings()}
+                  </div>
+
+                  {/* MOBILE BOTTOM NAV */}
+                  <div className="md:hidden fixed bottom-6 left-6 right-6 z-50">
+                    <div className="bg-white/80 backdrop-blur-xl p-2 rounded-3xl shadow-2xl shadow-slate-200 flex justify-between items-center max-w-[360px] mx-auto border border-white/50 gap-2">
+                      <button onClick={() => setActiveTab('dashboard')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
+                        <LayoutDashboard className="w-6 h-6" strokeWidth={2.5} />
+                      </button>
+                      <button onClick={() => setActiveTab('add')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'add' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
+                        <PlusCircle className="w-6 h-6" strokeWidth={2.5} />
+                      </button>
+                      <button onClick={() => setActiveTab('logs')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'logs' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
+                        <List className="w-6 h-6" strokeWidth={2.5} />
+                      </button>
+                      <button onClick={() => setActiveTab('settings')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'settings' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
+                        <Settings className="w-6 h-6" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+              </div>
               
+              {/* EDIT MODAL OVERLAY */}
+              {editModal.isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
+                                <Edit2 className="w-5 h-5" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800">{t.editTitle}</h3>
+                        </div>
+                        <button onClick={() => setEditModal({...editModal, isOpen: false})} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.debtName}</label>
+                          <input 
+                            type="text" 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all" 
+                            value={editModal.currentTitle} 
+                            onChange={(e) => setEditModal({...editModal, currentTitle: e.target.value})} 
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.amount}</label>
+                          <input 
+                            type="number" 
+                            step="0.01"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all" 
+                            value={editModal.currentAmount} 
+                            onChange={(e) => setEditModal({...editModal, currentAmount: e.target.value})} 
+                          />
+                          <p className="text-[10px] text-slate-400 mt-1 italic">Updates all monthly terms for this record.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-6">
+                      <button 
+                        onClick={() => setEditModal({ ...editModal, isOpen: false })}
+                        className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition"
+                      >
+                        {t.cancel}
+                      </button>
+                      <button 
+                        onClick={saveEdit}
+                        className="flex-1 py-3 text-sm font-bold text-white bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition"
+                      >
+                        {t.saveChanges}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* CONFIRMATION MODAL OVERLAY */}
               {confirmModal.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1038,11 +1357,30 @@
                 </div>
               )}
 
+              {/* NOTIFICATION MODAL (New) */}
+              {notification.isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${notification.type === 'error' ? 'bg-rose-50 text-rose-500' : 'bg-green-50 text-green-500'}`}>
+                      {notification.type === 'error' ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-2">{notification.title}</h3>
+                    <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">{notification.message}</p>
+                    <button 
+                      onClick={() => setNotification({ ...notification, isOpen: false })}
+                      className="w-full py-3 text-sm font-bold text-white bg-slate-900 rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition"
+                    >
+                      {t.close}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* ACTIVITY LOG MODAL OVERLAY */}
               {showActivityLog && (
-                <div className="fixed inset-0 z-[60] bg-white flex flex-col animate-in slide-in-from-right duration-300">
+                <div className="fixed inset-y-0 right-0 z-[60] w-full md:w-[400px] bg-white flex flex-col animate-in slide-in-from-right duration-300 shadow-2xl border-l border-slate-100">
                   {/* Activity Log Header */}
-                  <div className="pt-12 pb-4 px-6 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0">
+                  <div className="pt-12 md:pt-6 pb-4 px-6 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0">
                       <div>
                         <h2 className="text-2xl font-black text-slate-900 leading-tight">{t.activity}</h2>
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{t.recentActions}</p>
@@ -1088,6 +1426,16 @@
                               bgColor = 'bg-rose-50';
                               borderColor = 'border-rose-100';
                               break;
+                            case 'edit':
+                                icon = <Edit2 className="w-4 h-4 text-blue-500" />;
+                                bgColor = 'bg-blue-50';
+                                borderColor = 'border-blue-100';
+                                break;
+                            case 'settings':
+                                icon = <Settings className="w-4 h-4 text-slate-600" />;
+                                bgColor = 'bg-slate-100';
+                                borderColor = 'border-slate-200';
+                                break;
                             default: break;
                           }
 
@@ -1110,64 +1458,7 @@
                   </div>
                 </div>
               )}
-
-              {/* Header */}
-              <div className="bg-white/80 backdrop-blur-xl pt-12 pb-4 px-6 sticky top-0 z-50 border-b border-slate-100/50">
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-1">
-                      Debt Tracker
-                    </h1>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {activeTab === 'dashboard' && t.dashboard} 
-                      {activeTab === 'add' && t.add} 
-                      {activeTab === 'logs' && t.logs} 
-                      {activeTab === 'settings' && t.settings}
-                    </p>
-                  </div>
-                  
-                  {/* Activity Log Toggle Button */}
-                  <button 
-                    onClick={() => setShowActivityLog(true)}
-                    className="p-3 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition active:scale-95"
-                  >
-                    <History className="w-5 h-5 text-slate-600" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-                {activeTab === 'dashboard' && renderDashboard()}
-                {activeTab === 'add' && renderAddForm()}
-                {activeTab === 'logs' && renderLogs()}
-                {activeTab === 'settings' && renderSettings()}
-              </div>
-
-              {/* Bottom Nav */}
-              <div className="fixed bottom-6 left-6 right-6 z-50">
-                <div className="bg-white/80 backdrop-blur-xl p-2 rounded-3xl shadow-2xl shadow-slate-200 flex justify-between items-center max-w-[360px] mx-auto border border-white/50 gap-2">
-                  
-                  <button onClick={() => setActiveTab('dashboard')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                    <LayoutDashboard className="w-6 h-6" strokeWidth={2.5} />
-                  </button>
-                  
-                  <button onClick={() => setActiveTab('add')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'add' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                    <PlusCircle className="w-6 h-6" strokeWidth={2.5} />
-                  </button>
-
-                  <button onClick={() => setActiveTab('logs')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'logs' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                    <List className="w-6 h-6" strokeWidth={2.5} />
-                  </button>
-
-                  <button onClick={() => setActiveTab('settings')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'settings' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                    <Settings className="w-6 h-6" strokeWidth={2.5} />
-                  </button>
-
-                </div>
-              </div>
-
-            </div>
+            </>
           );
         }
 
