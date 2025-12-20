@@ -1,7 +1,7 @@
-const CACHE_NAME = 'debt-tracker-v1';
+const CACHE_NAME = 'debt-tracker-v3';
 const ASSETS_TO_CACHE = [
-  './index.html',
-  './manifest.json'
+  './',
+  './index.html'
 ];
 
 // Install event - Cache core assets
