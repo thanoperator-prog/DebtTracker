@@ -1,15 +1,15 @@
-const CACHE_NAME = 'debt-tracker-v4';
+const CACHE_NAME = 'debt-tracker-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icon.svg'
 ];
 
 // 1. Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -36,23 +36,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Strategy: Cache First for external CDNs (React, Tailwind, Icons)
+  // Strategy: Cache First for external CDNs
   if (url.origin.includes('cdn.tailwindcss.com') || 
       url.origin.includes('unpkg.com') || 
       url.origin.includes('esm.sh') ||
       url.origin.includes('fonts.googleapis.com') ||
-      url.origin.includes('fonts.gstatic.com') ||
-      url.origin.includes('flaticon.com')) {
+      url.origin.includes('fonts.gstatic.com')) {
       
      event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+        if (cachedResponse) return cachedResponse;
         return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 && response.type !== 'opaque') {
-            return response;
-          }
+          if (!response || response.status !== 200 && response.type !== 'opaque') return response;
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
@@ -64,11 +59,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy: Network First, fall back to Cache for local files (index.html)
+  // Strategy: Network First, fall back to Cache for local files
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Update cache with new version
         const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
@@ -76,7 +70,6 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // If offline, return cached version
         return caches.match(event.request);
       })
   );
