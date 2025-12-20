@@ -14,9 +14,7 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2843/2843004.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -27,6 +25,8 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         input, select, textarea { font-size: 16px !important; }
+        /* Smooth scrolling for the whole app */
+        html { scroll-behavior: smooth; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -34,219 +34,23 @@
     <div id="root" class="h-screen w-full flex flex-col md:flex-row overflow-hidden"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+        import React, { useState, useEffect, useRef, useMemo, useCallback } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
-        // Import Icons
         import { 
           Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share, ChevronLeft, ChevronRight
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
-        // --- PASTE YOUR ENTIRE REACT CODE HERE ---
-        // (I have hidden the long React code for brevity, but you must paste 
-        // the content of your script tag from your previous file here)
-        
-        // --- TRANSLATIONS ---
+        // --- TRANSLATIONS (Same as provided) ---
         const translations = {
           en: {
-            dashboard: "Dashboard",
-            addRecord: "New Record",
-            debtLogs: "My Debts",
-            calendar: "Calendar",
-            settings: "Settings",
-            totalUnpaid: "Outstanding",
-            totalPaid: "Settled",
-            nextDue: "Next Payment",
-            viewDetails: "View",
-            noPending: "All Clear!",
-            freedom: "Zero debts. Good job!",
-            newDebtTitle: "Add Expense",
-            debtName: "What is this for?",
-            amount: "Monthly Amortization",
-            terms: "Duration (Months)",
-            dateIncurred: "Start Date",
-            saveDebt: "Save Record",
-            debtHistory: "Transactions",
-            noRecords: "No records found.",
-            addNow: "Add New",
-            settingsHeader: "Preferences",
-            settingsSub: "Customize your experience",
-            selectedPaydays: "Payday Schedule",
-            howItWorks: "Quick Tip",
-            logicText: "We calculate due dates automatically. Just set your start date and terms.",
-            paidStatus: "PAID",
-            markPaid: "Pay",
-            markUnpaid: "Undo",
-            home: "Home",
-            add: "Add",
-            logs: "Logs",
-            config: "Config",
-            perMonth: "/mo",
-            language: "Language",
-            phTime: "PH Time",
-            none: "None",
-            totalCalc: "Total Loan",
-            budgetSource: "Budget Source",
-            allocated: "For",
-            sahodNg: "Payday",
-            budgetTargets: "Payday Budgets",
-            cleared: "Cleared",
-            autoDeduct: "Auto-deduct",
-            overdue: "OVERDUE",
-            dueSince: "Due since",
-            upcoming: "Upcoming",
-            nextUp: "Next up",
-            ongoing: "Active",
-            completed: "Done",
-            activity: "Activity Log",
-            recentActions: "Recent Actions",
-            nextPayment: "Next",
-            progress: "Progress",
-            fullyPaid: "Fully Paid",
-            expand: "View Terms",
-            collapse: "Hide Terms",
-            clickToView: "View Items",
-            confirmTitle: "Confirm Action",
-            confirmDelete: "Delete this entire record permanently?",
-            confirmDeleteTerm: "Delete this specific term?",
-            confirmPay: "Mark this item as paid?",
-            confirmUnpay: "Revert status to unpaid?",
-            cancel: "Cancel",
-            confirm: "Confirm",
-            savedDescHeader: "Quick Titles",
-            savedDescSub: "Tap X to remove saved titles.",
-            delete: "Delete",
-            actionAdded: "Added",
-            actionPaid: "Paid",
-            actionUnpaid: "Reverted",
-            actionDeleted: "Deleted",
-            actionDeletedTerm: "Deleted term",
-            close: "Close",
-            editTitle: "Edit Record",
-            saveChanges: "Save Changes",
-            edit: "Edit",
-            actionEdited: "Edited",
-            actionSettings: "Updated Settings",
-            dataManagement: "Data Management",
-            backupRestore: "Backup & Restore",
-            backup: "Backup Data",
-            restore: "Restore Data",
-            restoreSuccess: "Data restored successfully.",
-            restoreError: "Invalid backup file or corrupt data.",
-            errorTitle: "Error",
-            successTitle: "Success",
-            futureSchedule: "Future Schedule",
-            itemCount: "items",
-            splitPayment: "Split across paydays?",
-            splitInfo: "Divides monthly amount equally per payday.",
-            installApp: "Install App",
-            installDesc: "Add to Home Screen for easier access.",
-            installIOS: "Install on iOS",
-            installIOSDesc: "Tap Share icon below, then 'Add to Home Screen'.",
-            paydayLegend: "Payday",
-            dueLegend: "Due Date"
+            dashboard: "Dashboard", addRecord: "New Record", debtLogs: "My Debts", calendar: "Calendar", settings: "Settings", totalUnpaid: "Outstanding", totalPaid: "Settled", nextDue: "Next Payment", viewDetails: "View", noPending: "All Clear!", freedom: "Zero debts. Good job!", newDebtTitle: "Add Expense", debtName: "What is this for?", amount: "Monthly Amortization", terms: "Duration (Months)", dateIncurred: "Start Date", saveDebt: "Save Record", debtHistory: "Transactions", noRecords: "No records found.", addNow: "Add New", settingsHeader: "Preferences", settingsSub: "Customize your experience", selectedPaydays: "Payday Schedule", howItWorks: "Quick Tip", logicText: "We calculate due dates automatically. Just set your start date and terms.", paidStatus: "PAID", markPaid: "Pay", markUnpaid: "Undo", home: "Home", add: "Add", logs: "Logs", config: "Config", perMonth: "/mo", language: "Language", phTime: "PH Time", none: "None", totalCalc: "Total Loan", budgetSource: "Budget Source", allocated: "For", sahodNg: "Payday", budgetTargets: "Payday Budgets", cleared: "Cleared", autoDeduct: "Auto-deduct", overdue: "OVERDUE", dueSince: "Due since", upcoming: "Upcoming", nextUp: "Next up", ongoing: "Active", completed: "Done", activity: "Activity Log", recentActions: "Recent Actions", nextPayment: "Next", progress: "Progress", fullyPaid: "Fully Paid", expand: "View Terms", collapse: "Hide Terms", clickToView: "View Items", confirmTitle: "Confirm Action", confirmDelete: "Delete this entire record permanently?", confirmDeleteTerm: "Delete this specific term?", confirmPay: "Mark this item as paid?", confirmUnpay: "Revert status to unpaid?", cancel: "Cancel", confirm: "Confirm", savedDescHeader: "Quick Titles", savedDescSub: "Tap X to remove saved titles.", delete: "Delete", actionAdded: "Added", actionPaid: "Paid", actionUnpaid: "Reverted", actionDeleted: "Deleted", actionDeletedTerm: "Deleted term", close: "Close", editTitle: "Edit Record", saveChanges: "Save Changes", edit: "Edit", actionEdited: "Edited", actionSettings: "Updated Settings", dataManagement: "Data Management", backupRestore: "Backup & Restore", backup: "Backup Data", restore: "Restore Data", restoreSuccess: "Data restored successfully.", restoreError: "Invalid backup file or corrupt data.", errorTitle: "Error", successTitle: "Success", futureSchedule: "Future Schedule", itemCount: "items", splitPayment: "Split across paydays?", splitInfo: "Divides monthly amount equally per payday.", installApp: "Install App", installDesc: "Add to Home Screen for easier access.", installIOS: "Install on iOS", installIOSDesc: "Tap Share icon below, then 'Add to Home Screen'.", paydayLegend: "Payday", dueLegend: "Due Date"
           },
           tl: {
-            dashboard: "Dashboard",
-            addRecord: "Magdagdag",
-            debtLogs: "Listahan",
-            calendar: "Kalendaryo",
-            settings: "Settings",
-            totalUnpaid: "Balanse",
-            totalPaid: "Bayad Na",
-            nextDue: "Susunod",
-            viewDetails: "Tingnan",
-            noPending: "Ayos, wala kang utang!",
-            freedom: "Malaya ka na sa utang.",
-            newDebtTitle: "Bagong Utang",
-            debtName: "Para saan ito?",
-            amount: "Hulog kada Buwan",
-            terms: "Ilang Buwan",
-            dateIncurred: "Petsa ng Simula",
-            saveDebt: "I-save",
-            debtHistory: "Kasaysayan",
-            noRecords: "Walang laman.",
-            addNow: "Magdagdag",
-            settingsHeader: "Configuration",
-            settingsSub: "Ayusin ang settings.",
-            selectedPaydays: "Araw ng Sahod",
-            howItWorks: "Paalala",
-            logicText: "Automatic ang due dates base sa simula. I-set lang ang detalye.",
-            paidStatus: "BAYAD NA",
-            markPaid: "Bayaran",
-            markUnpaid: "Bawiin",
-            home: "Home",
-            add: "Add",
-            logs: "Logs",
-            config: "Config",
-            perMonth: "/buwan",
-            language: "Wika",
-            phTime: "Oras sa PH",
-            none: "Wala",
-            totalCalc: "Kabuuan",
-            budgetSource: "Kukunin sa",
-            allocated: "Para sa",
-            sahodNg: "Sahod",
-            budgetTargets: "Kailangang Ihanda",
-            cleared: "Ok na",
-            autoDeduct: "Auto-bawas",
-            overdue: "LAGPAS NA",
-            dueSince: "Dapat nung",
-            upcoming: "Parating",
-            nextUp: "Isusunod",
-            ongoing: "Aktibo",
-            completed: "Tapos",
-            activity: "Aktibidad",
-            recentActions: "Kamakailang Ganap",
-            nextPayment: "Susunod",
-            progress: "Progreso",
-            fullyPaid: "Bayad Lahat",
-            expand: "Ipakita",
-            collapse: "Itago",
-            clickToView: "Tingnan ang detalye",
-            confirmTitle: "Sigurado ka ba?",
-            confirmDelete: "Burahin ang BUONG record na ito?",
-            confirmDeleteTerm: "Burahin ang term na ito?",
-            confirmPay: "Markahan na bayad na?",
-            confirmUnpay: "Ibalik sa 'di pa bayad'?",
-            cancel: "Hindi",
-            confirm: "Oo, Ituloy",
-            savedDescHeader: "Naka-save",
-            savedDescSub: "Mga madalas gamitin.",
-            delete: "Burahin",
-            actionAdded: "Nagdagdag",
-            actionPaid: "Binayaran",
-            actionUnpaid: "Binawi",
-            actionDeleted: "Binura",
-            actionDeletedTerm: "Binura ang term",
-            close: "Isara",
-            editTitle: "Baguhin ang Record",
-            saveChanges: "I-save ang Pagbabago",
-            edit: "Baguhin",
-            actionEdited: "Binago",
-            actionSettings: "Settings Updated",
-            dataManagement: "Pamamahala ng Data",
-            backupRestore: "Backup at Restore",
-            backup: "I-backup ang Data",
-            restore: "I-restore ang Data",
-            restoreSuccess: "Matagumpay na nai-restore.",
-            restoreError: "Hindi valid ang file o sira ang data.",
-            errorTitle: "May Error",
-            successTitle: "Tagumpay",
-            futureSchedule: "Mga Susunod",
-            itemCount: "bagay",
-            splitPayment: "Hatiin sa mga sahod?",
-            splitInfo: "Hahatiin ang monthly sa bawat payday.",
-            installApp: "I-install ang App",
-            installDesc: "Ilagay sa Home Screen para madaling buksan.",
-            installIOS: "Para sa iOS",
-            installIOSDesc: "Pindutin ang Share, at piliin ang 'Add to Home Screen'.",
-            paydayLegend: "Sahod",
-            dueLegend: "Bayarin"
+            dashboard: "Dashboard", addRecord: "Magdagdag", debtLogs: "Listahan", calendar: "Kalendaryo", settings: "Settings", totalUnpaid: "Balanse", totalPaid: "Bayad Na", nextDue: "Susunod", viewDetails: "Tingnan", noPending: "Ayos, wala kang utang!", freedom: "Malaya ka na sa utang.", newDebtTitle: "Bagong Utang", debtName: "Para saan ito?", amount: "Hulog kada Buwan", terms: "Ilang Buwan", dateIncurred: "Petsa ng Simula", saveDebt: "I-save", debtHistory: "Kasaysayan", noRecords: "Walang laman.", addNow: "Magdagdag", settingsHeader: "Configuration", settingsSub: "Ayusin ang settings.", selectedPaydays: "Araw ng Sahod", howItWorks: "Paalala", logicText: "Automatic ang due dates base sa simula. I-set lang ang detalye.", paidStatus: "BAYAD NA", markPaid: "Bayaran", markUnpaid: "Bawiin", home: "Home", add: "Add", logs: "Logs", config: "Config", perMonth: "/buwan", language: "Wika", phTime: "Oras sa PH", none: "Wala", totalCalc: "Kabuuan", budgetSource: "Kukunin sa", allocated: "Para sa", sahodNg: "Sahod", budgetTargets: "Kailangang Ihanda", cleared: "Ok na", autoDeduct: "Auto-bawas", overdue: "LAGPAS NA", dueSince: "Dapat nung", upcoming: "Parating", nextUp: "Isusunod", ongoing: "Aktibo", completed: "Tapos", activity: "Aktibidad", recentActions: "Kamakailang Ganap", nextPayment: "Susunod", progress: "Progreso", fullyPaid: "Bayad Lahat", expand: "Ipakita", collapse: "Itago", clickToView: "Tingnan ang detalye", confirmTitle: "Sigurado ka ba?", confirmDelete: "Burahin ang BUONG record na ito?", confirmDeleteTerm: "Burahin ang term na ito?", confirmPay: "Markahan na bayad na?", confirmUnpay: "Ibalik sa 'di pa bayad'?", cancel: "Hindi", confirm: "Oo, Ituloy", savedDescHeader: "Naka-save", savedDescSub: "Mga madalas gamitin.", delete: "Burahin", actionAdded: "Nagdagdag", actionPaid: "Binayaran", actionUnpaid: "Binawi", actionDeleted: "Binura", actionDeletedTerm: "Binura ang term", close: "Isara", editTitle: "Baguhin ang Record", saveChanges: "I-save ang Pagbabago", edit: "Baguhin", actionEdited: "Binago", actionSettings: "Settings Updated", dataManagement: "Pamamahala ng Data", backupRestore: "Backup at Restore", backup: "I-backup ang Data", restore: "I-restore ang Data", restoreSuccess: "Matagumpay na nai-restore.", restoreError: "Hindi valid ang file o sira ang data.", errorTitle: "May Error", successTitle: "Tagumpay", futureSchedule: "Mga Susunod", itemCount: "bagay", splitPayment: "Hatiin sa mga sahod?", splitInfo: "Hahatiin ang monthly sa bawat payday.", installApp: "I-install ang App", installDesc: "Ilagay sa Home Screen para madaling buksan.", installIOS: "Para sa iOS", installIOSDesc: "Pindutin ang Share, at piliin ang 'Add to Home Screen'.", paydayLegend: "Sahod", dueLegend: "Bayarin"
           }
         };
 
-        // --- Custom Hook for Local Storage ---
         function useStickyState(key, defaultValue) {
             const [value, setValue] = useState(() => {
                 const stickyValue = window.localStorage.getItem(key);
@@ -279,68 +83,24 @@
           const [expandedDashboardCard, setExpandedDashboardCard] = useState(null);
           const [expandedGroups, setExpandedGroups] = useState({}); 
           
-          // Install Prompt State
           const [deferredPrompt, setDeferredPrompt] = useState(null);
           const [isIOS, setIsIOS] = useState(false);
 
-          // Calendar State
           const [currentDate, setCurrentDate] = useState(new Date());
           const [selectedDate, setSelectedDate] = useState(null);
 
-          // --- PERSISTENT STATE ---
           const [lang, setLang] = useStickyState('debt_tracker_lang', 'en');
           const [paydays, setPaydays] = useStickyState('debt_tracker_paydays', [15, 30]);
           const [savedDescriptions, setSavedDescriptions] = useStickyState('debt_tracker_desc', ['Emergency Loan', 'Grocery', 'Internet Bill', 'Electricity', 'Water Bill']);
           const [activityLog, setActivityLog] = useStickyState('debt_tracker_activity', []);
-          const [debts, setDebts] = useStickyState('debt_tracker_debts', [
-            { 
-              id: 1, 
-              parentId: 101, 
-              title: 'iPhone Installment', 
-              amount: 2500, 
-              dateIncurred: '2025-12-19', 
-              dueDate: '2026-01-19', 
-              isPaid: false, 
-              termIndex: 0,
-              totalTerms: 3
-            },
-            { 
-              id: 2, 
-              parentId: 101, 
-              title: 'iPhone Installment', 
-              amount: 2500, 
-              dateIncurred: '2025-12-19', 
-              dueDate: '2026-02-19', 
-              isPaid: false, 
-              termIndex: 1,
-              totalTerms: 3
-            },
-          ]);
+          const [debts, setDebts] = useStickyState('debt_tracker_debts', []);
 
-          const t = translations[lang];
+          const t = translations[lang] || translations['en'];
           const fileInputRef = useRef(null);
 
-          const [confirmModal, setConfirmModal] = useState({
-            isOpen: false,
-            title: '',
-            message: '',
-            type: 'neutral',
-            onConfirm: () => {}
-          });
-
-          const [notification, setNotification] = useState({
-            isOpen: false,
-            title: '',
-            message: '',
-            type: 'success'
-          });
-
-          const [editModal, setEditModal] = useState({
-            isOpen: false,
-            parentId: null,
-            currentTitle: '',
-            currentAmount: ''
-          });
+          const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', type: 'neutral', onConfirm: () => {} });
+          const [notification, setNotification] = useState({ isOpen: false, title: '', message: '', type: 'success' });
+          const [editModal, setEditModal] = useState({ isOpen: false, parentId: null, currentTitle: '', currentAmount: '' });
 
           const [newDebtName, setNewDebtName] = useState('');
           const [newDebtAmount, setNewDebtAmount] = useState('');
@@ -348,72 +108,46 @@
           const [newDebtTerms, setNewDebtTerms] = useState(1); 
           const [enableSplit, setEnableSplit] = useState(false);
 
-          // --- PWA INSTALL EFFECT ---
           useEffect(() => {
-            // Check if iOS
             const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
             setIsIOS(iOS);
-
-            const handler = (e) => {
-              // Prevent the mini-infobar from appearing on mobile
-              e.preventDefault();
-              // Stash the event so it can be triggered later.
-              setDeferredPrompt(e);
-            };
-
+            const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
             window.addEventListener('beforeinstallprompt', handler);
-
             return () => window.removeEventListener('beforeinstallprompt', handler);
           }, []);
 
           const handleInstallClick = async () => {
             if (!deferredPrompt) return;
-            // Show the install prompt
             deferredPrompt.prompt();
-            // Wait for the user to respond to the prompt
             const { outcome } = await deferredPrompt.userChoice;
-            // Optionally, send analytics event with outcome of user choice
-            console.log(`User response to the install prompt: ${outcome}`);
-            // We've used the prompt, and can't use it again, discard it
+            console.log(`User response: ${outcome}`);
             setDeferredPrompt(null);
           };
 
-          // --- HELPERS ---
-          const formatPHP = (amount) => {
+          const formatPHP = useCallback((amount) => {
             return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(amount);
-          };
+          }, []);
 
-          // ... (rest of helpers like formatDate, getNextPaydayDate etc. remain same) ...
-          const formatDate = (dateString, options = {}) => {
+          const formatDate = useCallback((dateString, options = {}) => {
             if (!dateString) return '';
             const date = new Date(dateString);
-            const defaultOptions = { 
-              timeZone: 'Asia/Manila',
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric' 
-            };
+            const defaultOptions = { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' };
             return date.toLocaleDateString('en-PH', { ...defaultOptions, ...options });
-          };
+          }, []);
 
-          const getNextPaydayDate = (day) => {
+          const getNextPaydayDate = useCallback((day) => {
             const today = new Date();
             today.setHours(0,0,0,0);
             let targetMonth = today.getMonth();
             let targetYear = today.getFullYear();
             if (today.getDate() > day) {
               targetMonth++;
-              if (targetMonth > 11) {
-                targetMonth = 0;
-                targetYear++;
-              }
+              if (targetMonth > 11) { targetMonth = 0; targetYear++; }
             }
             let date = new Date(targetYear, targetMonth, day);
-            if (date.getMonth() !== targetMonth) {
-              date = new Date(targetYear, targetMonth + 1, 0); 
-            }
+            if (date.getMonth() !== targetMonth) { date = new Date(targetYear, targetMonth + 1, 0); }
             return date;
-          };
+          }, []);
 
           const getMonthlyDueDates = (startDateStr, termsCount) => {
             const dates = [];
@@ -423,9 +157,7 @@
             for (let i = 1; i <= termsCount; i++) {
               let termDate = new Date(startObj);
               termDate.setMonth(termDate.getMonth() + i);
-              if (termDate.getDate() !== startDay) {
-                  termDate.setDate(0);
-              }
+              if (termDate.getDate() !== startDay) termDate.setDate(0);
               const offset = termDate.getTimezoneOffset() * 60000;
               const localISOTime = (new Date(termDate - offset)).toISOString().slice(0, 10);
               dates.push(localISOTime);
@@ -433,70 +165,46 @@
             return dates;
           };
 
-          const getBudgetSourceDay = (dueDateStr, currentPaydays) => {
+          const getBudgetSourceDay = useCallback((dueDateStr, currentPaydays) => {
             if (!currentPaydays || currentPaydays.length === 0) return 15;
             const date = new Date(dueDateStr);
             const day = date.getDate();
             const sorted = [...currentPaydays].sort((a,b) => a - b);
             let budgetDay = sorted[sorted.length - 1]; 
             for (let i = sorted.length - 1; i >= 0; i--) {
-              if (day >= sorted[i]) {
-                budgetDay = sorted[i];
-                break;
-              }
+              if (day >= sorted[i]) { budgetDay = sorted[i]; break; }
             }
             return budgetDay;
-          };
+          }, []);
 
-          const getExactPaydaySourceDate = (dueDateStr, budgetDay) => {
+          const getExactPaydaySourceDate = useCallback((dueDateStr, budgetDay) => {
             const due = new Date(dueDateStr);
             let targetYear = due.getFullYear();
             let targetMonth = due.getMonth();
             const dueDay = due.getDate();
             if (budgetDay > dueDay) {
               targetMonth--;
-              if (targetMonth < 0) {
-                targetMonth = 11;
-                targetYear--;
-              }
+              if (targetMonth < 0) { targetMonth = 11; targetYear--; }
             }
             let payday = new Date(targetYear, targetMonth, budgetDay);
-            if (payday.getMonth() !== targetMonth) {
-              payday = new Date(targetYear, targetMonth + 1, 0);
-            }
+            if (payday.getMonth() !== targetMonth) payday = new Date(targetYear, targetMonth + 1, 0);
             const offset = payday.getTimezoneOffset() * 60000;
             return (new Date(payday - offset)).toISOString().slice(0, 10);
-          };
+          }, []);
 
           const logAction = (type, title, details) => {
-            const newLog = {
-              id: Date.now(),
-              type, 
-              title,
-              details,
-              timestamp: new Date()
-            };
+            const newLog = { id: Date.now(), type, title, details, timestamp: new Date() };
             setActivityLog(prev => [newLog, ...prev]);
           };
 
           const askConfirmation = (title, message, action, type = 'neutral') => {
-            setConfirmModal({
-              isOpen: true,
-              title,
-              message,
-              type,
-              onConfirm: () => {
-                action();
-                setConfirmModal(prev => ({ ...prev, isOpen: false }));
-              }
-            });
+            setConfirmModal({ isOpen: true, title, message, type, onConfirm: () => { action(); setConfirmModal(prev => ({ ...prev, isOpen: false })); } });
           };
 
           const showAlert = (title, message, type = 'success') => {
              setNotification({ isOpen: true, title, message, type });
           };
 
-          // --- HANDLERS ---
           const handleAddDebt = (e) => {
             e.preventDefault();
             if (!newDebtName || !newDebtAmount || !newDebtDate) return;
@@ -512,33 +220,24 @@
             const newDebts = [];
 
             if (enableSplit && paydays.length > 1) {
-                // SPLIT LOGIC
                 const splitAmount = monthlyAmount / paydays.length;
                 const sortedPaydays = [...paydays].sort((a, b) => a - b);
                 
                 for (let i = 1; i <= terms; i++) {
-                    // Determine the target month for this installment index
                     let termBaseDate = new Date(newDebtDate);
                     termBaseDate.setHours(0,0,0,0);
                     termBaseDate.setMonth(termBaseDate.getMonth() + i);
                     
-                    // Create a sub-term for EACH payday in that month
                     sortedPaydays.forEach((day, pIndex) => {
                         let targetYear = termBaseDate.getFullYear();
                         let targetMonth = termBaseDate.getMonth();
-                        
-                        // Construct exact date for this payday
                         let d = new Date(targetYear, targetMonth, day);
-                        // Handle End of Month overflow (e.g. Feb 30 -> Feb 28/29)
-                        if (d.getMonth() !== targetMonth) {
-                            d = new Date(targetYear, targetMonth + 1, 0);
-                        }
-                        
+                        if (d.getMonth() !== targetMonth) d = new Date(targetYear, targetMonth + 1, 0);
                         const offset = d.getTimezoneOffset() * 60000;
                         const localISOTime = (new Date(d - offset)).toISOString().slice(0, 10);
 
                         newDebts.push({
-                            id: Date.now() + Math.random(), // Ensure unique ID
+                            id: Date.now() + Math.random(), 
                             parentId: parentId,
                             title: newDebtName, 
                             amount: splitAmount,
@@ -551,13 +250,11 @@
                     });
                 }
                 logAction('add', newDebtName, `${formatPHP(monthlyAmount)}/mo (Split) for ${terms} months`);
-
             } else {
-                // NORMAL LOGIC
                 const dueDates = getMonthlyDueDates(newDebtDate, terms);
                 dueDates.forEach((date, index) => {
                   newDebts.push({
-                    id: Date.now() + index,
+                    id: Date.now() + index + Math.random(),
                     parentId: parentId,
                     title: newDebtName,
                     amount: monthlyAmount,
@@ -570,14 +267,8 @@
                 });
                 logAction('add', newDebtName, `${formatPHP(monthlyAmount)}/mo for ${terms} months`);
             }
-
             setDebts([...newDebts, ...debts]);
-            
-            setNewDebtName('');
-            setNewDebtAmount('');
-            setNewDebtDate(new Date().toISOString().split('T')[0]);
-            setNewDebtTerms(1);
-            setEnableSplit(false); // Reset toggle
+            setNewDebtName(''); setNewDebtAmount(''); setNewDebtDate(new Date().toISOString().split('T')[0]); setNewDebtTerms(1); setEnableSplit(false);
             setActiveTab('logs');
           };
 
@@ -599,42 +290,27 @@
           const togglePaid = (id) => {
             setDebts(debts.map(d => {
               if (d.id === id) {
-                logAction(
-                  d.isPaid ? 'unpay' : 'pay', 
-                  d.title, 
-                  `${d.isPaid ? 'Reverted' : 'Paid'} ${formatPHP(d.amount)} due on ${formatDate(d.dueDate)}`
-                );
+                logAction(d.isPaid ? 'unpay' : 'pay', d.title, `${d.isPaid ? 'Reverted' : 'Paid'} ${formatPHP(d.amount)} due on ${formatDate(d.dueDate)}`);
                 return { ...d, isPaid: !d.isPaid };
               }
               return d;
             }));
           };
 
-          // --- BACKUP & RESTORE ---
           const handleBackup = () => {
-              const data = {
-                  debts,
-                  paydays,
-                  savedDescriptions,
-                  activityLog,
-                  lang
-              };
-              const jsonStr = JSON.stringify(data, null, 2);
-              const blob = new Blob([jsonStr], { type: "application/json" });
+              const data = { debts, paydays, savedDescriptions, activityLog, lang };
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
               const url = URL.createObjectURL(blob);
               const link = document.createElement("a");
               link.href = url;
               link.download = `debt_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              document.body.appendChild(link); link.click(); document.body.removeChild(link);
               logAction('settings', 'Backup Created', 'Downloaded local backup file');
           };
 
           const handleRestore = (event) => {
               const file = event.target.files[0];
               if (!file) return;
-
               const reader = new FileReader();
               reader.onload = (e) => {
                   try {
@@ -644,110 +320,65 @@
                           if(data.paydays) setPaydays(data.paydays);
                           if(data.savedDescriptions) setSavedDescriptions(data.savedDescriptions);
                           if(data.activityLog) {
-                             // Fix dates when restoring from JSON
                              const revivedLogs = data.activityLog.map(l => ({...l, timestamp: new Date(l.timestamp)}));
                              setActivityLog(revivedLogs);
                           }
                           if(data.lang) setLang(data.lang);
-                          
                           logAction('settings', 'Data Restored', 'Restored data from backup file');
                           showAlert(t.successTitle, t.restoreSuccess, 'success');
                       } else {
                           showAlert(t.errorTitle, t.restoreError, 'error');
                       }
-                  } catch (error) {
-                      console.error(error);
-                      showAlert(t.errorTitle, t.restoreError, 'error');
-                  }
+                  } catch (error) { console.error(error); showAlert(t.errorTitle, t.restoreError, 'error'); }
               };
-              reader.readAsText(file);
-              event.target.value = null; // Reset for subsequent restores
+              reader.readAsText(file); event.target.value = null;
           };
 
-          // --- EDIT FEATURE ---
           const openEditModal = (group) => {
-              setEditModal({
-                  isOpen: true,
-                  parentId: group.parentId,
-                  currentTitle: group.title,
-                  currentAmount: group.terms[0]?.amount || 0
-              });
+              setEditModal({ isOpen: true, parentId: group.parentId, currentTitle: group.title, currentAmount: group.terms[0]?.amount || 0 });
           };
 
           const saveEdit = () => {
               const { parentId, currentTitle, currentAmount } = editModal;
               const newAmount = parseFloat(currentAmount);
-
               if(!currentTitle || !newAmount) return;
-
               setDebts(prev => prev.map(d => {
-                  if (d.parentId === parentId) {
-                      return { ...d, title: currentTitle, amount: newAmount };
-                  }
+                  if (d.parentId === parentId) return { ...d, title: currentTitle, amount: newAmount };
                   return d;
               }));
-
               logAction('edit', currentTitle, `Updated record. New Amount: ${formatPHP(newAmount)}`);
               setEditModal({ isOpen: false, parentId: null, currentTitle: '', currentAmount: '' });
           };
-
 
           const deleteSavedDescription = (desc) => {
             setSavedDescriptions(savedDescriptions.filter(d => d !== desc));
             logAction('settings', 'Description Removed', `Removed "${desc}" from quick list`);
           };
 
-          const confirmDelete = (id) => {
-            askConfirmation(t.confirmTitle, t.confirmDeleteTerm, () => deleteDebt(id), 'danger');
-          };
-
-          const confirmDeleteGroup = (parentId) => {
-            askConfirmation(t.confirmTitle, t.confirmDelete, () => deleteGroup(parentId), 'danger');
-          };
-
-          const confirmTogglePaid = (id, currentStatus) => {
-            const msg = currentStatus ? t.confirmUnpay : t.confirmPay;
-            askConfirmation(t.confirmTitle, msg, () => togglePaid(id), currentStatus ? 'neutral' : 'success');
-          };
-
-          const confirmDeleteDesc = (desc) => {
-            askConfirmation(t.confirmTitle, `${t.delete} "${desc}"?`, () => deleteSavedDescription(desc), 'danger');
-          };
-
-          const toggleGroupExpand = (parentId) => {
-            setExpandedGroups(prev => ({ ...prev, [parentId]: !prev[parentId] }));
-          };
-
+          const confirmDelete = (id) => askConfirmation(t.confirmTitle, t.confirmDeleteTerm, () => deleteDebt(id), 'danger');
+          const confirmDeleteGroup = (parentId) => askConfirmation(t.confirmTitle, t.confirmDelete, () => deleteGroup(parentId), 'danger');
+          const confirmTogglePaid = (id, currentStatus) => askConfirmation(t.confirmTitle, currentStatus ? t.confirmUnpay : t.confirmPay, () => togglePaid(id), currentStatus ? 'neutral' : 'success');
+          const confirmDeleteDesc = (desc) => askConfirmation(t.confirmTitle, `${t.delete} "${desc}"?`, () => deleteSavedDescription(desc), 'danger');
+          const toggleGroupExpand = (parentId) => setExpandedGroups(prev => ({ ...prev, [parentId]: !prev[parentId] }));
           const togglePayday = (day) => {
             let newPaydays;
-            if (paydays.includes(day)) {
-              newPaydays = paydays.filter(d => d !== day);
-              logAction('settings', 'Payday Removed', `Removed ${day} from schedule`);
-            } else {
-              newPaydays = [...paydays, day];
-              logAction('settings', 'Payday Added', `Added ${day} to schedule`);
-            }
+            if (paydays.includes(day)) { newPaydays = paydays.filter(d => d !== day); logAction('settings', 'Payday Removed', `Removed ${day} from schedule`);
+            } else { newPaydays = [...paydays, day]; logAction('settings', 'Payday Added', `Added ${day} to schedule`); }
             setPaydays(newPaydays);
           };
 
-          const totalUnpaid = debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.amount, 0);
-          const totalPaid = debts.filter(d => d.isPaid).reduce((sum, d) => sum + d.amount, 0);
+          // --- OPTIMIZED CALCULATIONS ---
+          const totalUnpaid = useMemo(() => debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.amount, 0), [debts]);
+          const totalPaid = useMemo(() => debts.filter(d => d.isPaid).reduce((sum, d) => sum + d.amount, 0), [debts]);
 
-          const getDashboardGroups = () => {
-            // ... (Dashboard grouping logic remains same)
+          const dashboardData = useMemo(() => {
             const groups = {};
             debts.filter(d => !d.isPaid).forEach(d => {
                 const budgetDay = getBudgetSourceDay(d.dueDate, paydays);
                 const exactPaydayDate = getExactPaydaySourceDate(d.dueDate, budgetDay);
                 
                 if (!groups[exactPaydayDate]) {
-                    groups[exactPaydayDate] = {
-                        dateStr: exactPaydayDate,
-                        dayLabel: budgetDay,
-                        amount: 0,
-                        status: 'upcoming',
-                        items: [] 
-                    };
+                    groups[exactPaydayDate] = { dateStr: exactPaydayDate, dayLabel: budgetDay, amount: 0, status: 'upcoming', items: [] };
                 }
                 groups[exactPaydayDate].amount += d.amount;
                 groups[exactPaydayDate].items.push(d);
@@ -767,62 +398,36 @@
                 const group = groups[key];
 
                 if (groupDate < today) {
-                    group.status = 'overdue';
-                    cardGroups.push(group);
+                    group.status = 'overdue'; cardGroups.push(group);
                 } else {
-                    if (!hasFoundNext) {
-                        group.status = 'upcoming'; 
-                        cardGroups.push(group);
-                        hasFoundNext = true;
-                    } else {
-                        group.status = 'future';
-                        listGroups.push(group);
-                    }
+                    if (!hasFoundNext) { group.status = 'upcoming'; cardGroups.push(group); hasFoundNext = true;
+                    } else { group.status = 'future'; listGroups.push(group); }
                 }
             });
 
-            if (cardGroups.length === 0 && listGroups.length === 0) {
-                  let nearestDay = null;
-                  let minDiff = Infinity;
+            if (cardGroups.length === 0 && listGroups.length === 0 && paydays.length > 0) {
+                  let nearestDay = null; let minDiff = Infinity;
                   paydays.forEach(p => {
                       const nextDate = getNextPaydayDate(p);
                       const diff = nextDate - today;
-                      if (diff < minDiff) {
-                          minDiff = diff;
-                          nearestDay = { date: nextDate, day: p };
-                      }
+                      if (diff < minDiff) { minDiff = diff; nearestDay = { date: nextDate, day: p }; }
                   });
                   if (nearestDay) {
                       const offset = nearestDay.date.getTimezoneOffset() * 60000;
                       const dateStr = (new Date(nearestDay.date - offset)).toISOString().slice(0, 10);
-                      cardGroups.push({
-                          dateStr: dateStr,
-                          dayLabel: nearestDay.day,
-                          amount: 0,
-                          status: 'upcoming',
-                          items: []
-                      });
+                      cardGroups.push({ dateStr: dateStr, dayLabel: nearestDay.day, amount: 0, status: 'upcoming', items: [] });
                   }
             }
             return { cards: cardGroups, list: listGroups };
-          };
+          }, [debts, paydays, getBudgetSourceDay, getExactPaydaySourceDate, getNextPaydayDate]);
 
-          const dashboardData = getDashboardGroups();
-
-          const getGroupedLogs = () => {
+          const groupedLogs = useMemo(() => {
             const groups = {};
             debts.forEach(d => {
               const pid = d.parentId || d.id; 
               if (!groups[pid]) {
                 groups[pid] = {
-                  parentId: pid,
-                  title: d.title || d.name,
-                  totalAmount: 0,
-                  paidAmount: 0,
-                  terms: [],
-                  nextDue: null,
-                  nextDueAmount: 0,
-                  isFullyPaid: true
+                  parentId: pid, title: d.title || d.name, totalAmount: 0, paidAmount: 0, terms: [], nextDue: null, nextDueAmount: 0, isFullyPaid: true
                 };
               }
               groups[pid].totalAmount += d.amount;
@@ -830,208 +435,93 @@
               if (!d.isPaid) groups[pid].isFullyPaid = false;
               groups[pid].terms.push(d);
             });
-            Object.values(groups).forEach(g => {
+            return Object.values(groups).map(g => {
               g.terms.sort((a,b) => a.termIndex - b.termIndex);
               const nextUnpaid = g.terms.find(t => !t.isPaid);
-              if (nextUnpaid) {
-                g.nextDue = nextUnpaid.dueDate;
-                g.nextDueAmount = nextUnpaid.amount;
-              } else {
-                g.nextDue = g.terms[g.terms.length - 1].dueDate;
-              }
+              if (nextUnpaid) { g.nextDue = nextUnpaid.dueDate; g.nextDueAmount = nextUnpaid.amount;
+              } else { g.nextDue = g.terms[g.terms.length - 1].dueDate; }
+              return g;
             });
-            return Object.values(groups);
-          };
+          }, [debts]);
 
-          const groupedLogs = getGroupedLogs();
-          const ongoingLogs = groupedLogs.filter(g => !g.isFullyPaid).sort((a,b) => new Date(a.nextDue) - new Date(b.nextDue));
-          const completedLogs = groupedLogs.filter(g => g.isFullyPaid).sort((a,b) => new Date(b.nextDue) - new Date(a.nextDue));
+          const ongoingLogs = useMemo(() => groupedLogs.filter(g => !g.isFullyPaid).sort((a,b) => new Date(a.nextDue) - new Date(b.nextDue)), [groupedLogs]);
+          const completedLogs = useMemo(() => groupedLogs.filter(g => g.isFullyPaid).sort((a,b) => new Date(b.nextDue) - new Date(a.nextDue)), [groupedLogs]);
 
-          // --- CALENDAR LOGIC ---
+          // --- CALENDAR RENDERING ---
           const renderCalendar = () => {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            
-            const firstDayOfMonth = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            // Adjust so week starts on Sunday (0) or Monday (1)? Standard JS is Sunday=0. 
-            // We'll stick to Sunday start for now.
-            
             const prevMonthDays = new Date(year, month, 0).getDate();
-            const paddingDays = firstDayOfMonth; // 0 for Sunday
-            
+            const paddingDays = new Date(year, month, 1).getDay();
             const days = [];
             
-            // Previous month padding
-            for(let i = paddingDays; i > 0; i--) {
-                days.push({ day: prevMonthDays - i + 1, type: 'prev', dateObj: new Date(year, month - 1, prevMonthDays - i + 1) });
-            }
-            
-            // Current month
-            for(let i = 1; i <= daysInMonth; i++) {
-                days.push({ day: i, type: 'current', dateObj: new Date(year, month, i) });
-            }
-            
-            // Next month padding to fill 6 rows (42 days)
+            for(let i = paddingDays; i > 0; i--) { days.push({ day: prevMonthDays - i + 1, type: 'prev', dateObj: new Date(year, month - 1, prevMonthDays - i + 1) }); }
+            for(let i = 1; i <= daysInMonth; i++) { days.push({ day: i, type: 'current', dateObj: new Date(year, month, i) }); }
             const remaining = 42 - days.length;
-            for(let i = 1; i <= remaining; i++) {
-                days.push({ day: i, type: 'next', dateObj: new Date(year, month + 1, i) });
-            }
+            for(let i = 1; i <= remaining; i++) { days.push({ day: i, type: 'next', dateObj: new Date(year, month + 1, i) }); }
 
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const isToday = (d) => { const today = new Date(); return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); };
+            const isSelected = (d) => selectedDate && d.getDate() === selectedDate.getDate() && d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
 
-            const isToday = (d) => {
-                const today = new Date();
-                return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-            };
-
-            const isSelected = (d) => {
-                if(!selectedDate) return false;
-                return d.getDate() === selectedDate.getDate() && d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
-            };
-
-            // Get events for a date
             const getEventsForDate = (date) => {
                 const day = date.getDate();
-                
-                // Check if Payday
                 const isPayday = paydays.includes(day);
-                
-                // Check debts due
                 const dateStr = (new Date(date.getTime() - (date.getTimezoneOffset() * 60000))).toISOString().slice(0, 10);
                 const dueDebts = debts.filter(d => d.dueDate === dateStr && !d.isPaid);
-                
                 return { isPayday, dueDebts };
             };
 
             return (
                 <div className="animate-in fade-in duration-500 pb-20 md:pb-0">
-                    {/* Calendar Header */}
                     <div className="flex items-center justify-between mb-6 px-2">
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                            {monthNames[month]} <span className="text-slate-400 font-medium">{year}</span>
-                        </h2>
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">{monthNames[month]} <span className="text-slate-400 font-medium">{year}</span></h2>
                         <div className="flex gap-2">
-                            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm">
-                                <ChevronLeft className="w-5 h-5 text-slate-600" />
-                            </button>
-                            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 bg-indigo-50 text-indigo-600 font-bold text-xs rounded-xl hover:bg-indigo-100 transition">
-                                Today
-                            </button>
-                            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm">
-                                <ChevronRight className="w-5 h-5 text-slate-600" />
-                            </button>
+                            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm"><ChevronLeft className="w-5 h-5 text-slate-600" /></button>
+                            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 bg-indigo-50 text-indigo-600 font-bold text-xs rounded-xl hover:bg-indigo-100 transition">Today</button>
+                            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm"><ChevronRight className="w-5 h-5 text-slate-600" /></button>
                         </div>
                     </div>
-
-                    {/* Calendar Grid */}
                     <div className="bg-white rounded-3xl p-4 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        {/* Weekdays */}
                         <div className="grid grid-cols-7 mb-4">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                <div key={day} className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {day}
-                                </div>
-                            ))}
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => ( <div key={day} className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">{day}</div> ))}
                         </div>
-                        
-                        {/* Days */}
                         <div className="grid grid-cols-7 gap-y-4 gap-x-2">
                             {days.map((item, index) => {
                                 const { isPayday, dueDebts } = getEventsForDate(item.dateObj);
-                                const hasDebt = dueDebts.length > 0;
-                                
                                 return (
-                                    <div 
-                                        key={index} 
-                                        onClick={() => setSelectedDate(item.dateObj)}
-                                        className={`flex flex-col items-center justify-start h-10 md:h-14 relative cursor-pointer group
-                                            ${item.type !== 'current' ? 'opacity-30' : ''}
-                                        `}
-                                    >
-                                        <span className={`text-xs font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all
-                                            ${isSelected(item.dateObj) ? 'bg-slate-900 text-white shadow-lg scale-110' : 
-                                              isToday(item.dateObj) ? 'bg-indigo-100 text-indigo-600' : 'text-slate-700 group-hover:bg-slate-50'}
-                                        `}>
-                                            {item.day}
-                                        </span>
-                                        
+                                    <div key={index} onClick={() => setSelectedDate(item.dateObj)} className={`flex flex-col items-center justify-start h-10 md:h-14 relative cursor-pointer group ${item.type !== 'current' ? 'opacity-30' : ''}`}>
+                                        <span className={`text-xs font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all ${isSelected(item.dateObj) ? 'bg-slate-900 text-white shadow-lg scale-110' : isToday(item.dateObj) ? 'bg-indigo-100 text-indigo-600' : 'text-slate-700 group-hover:bg-slate-50'}`}>{item.day}</span>
                                         <div className="flex gap-1 mt-1">
-                                            {isPayday && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm"></div>
-                                            )}
-                                            {hasDebt && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm"></div>
-                                            )}
+                                            {isPayday && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm"></div>}
+                                            {dueDebts.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm"></div>}
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
-
-                    {/* Legend */}
                     <div className="flex gap-4 mt-4 px-2 justify-center">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">{t.paydayLegend}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-rose-500"></div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">{t.dueLegend}</span>
-                        </div>
+                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500"></div><span className="text-[10px] font-bold text-slate-400 uppercase">{t.paydayLegend}</span></div>
+                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-rose-500"></div><span className="text-[10px] font-bold text-slate-400 uppercase">{t.dueLegend}</span></div>
                     </div>
-
-                    {/* Selected Date Details */}
                     {selectedDate && (
                         <div className="mt-6 animate-in slide-in-from-bottom-4 duration-300">
-                            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 px-1 border-l-4 border-indigo-500 pl-3">
-                                {selectedDate.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}
-                            </h3>
-                            
+                            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 px-1 border-l-4 border-indigo-500 pl-3">{selectedDate.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
                             <div className="space-y-3">
                                 {(() => {
                                     const { isPayday, dueDebts } = getEventsForDate(selectedDate);
-                                    if (!isPayday && dueDebts.length === 0) {
-                                        return (
-                                            <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
-                                                <p className="text-xs text-slate-400 font-medium italic">Nothing scheduled for this day.</p>
+                                    if (!isPayday && dueDebts.length === 0) return <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center"><p className="text-xs text-slate-400 font-medium italic">Nothing scheduled for this day.</p></div>;
+                                    return <>
+                                        {isPayday && <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-2xl shadow-lg shadow-purple-200 text-white flex items-center gap-3"><div className="bg-white/20 p-2 rounded-xl"><Wallet className="w-5 h-5" /></div><div><p className="font-bold text-sm">Payday!</p><p className="text-xs text-purple-100 opacity-90">Time to budget.</p></div></div>}
+                                        {dueDebts.map(debt => (
+                                            <div key={debt.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                                                <div><p className="text-sm font-bold text-slate-800">{debt.title}</p><span className="text-[10px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded font-bold uppercase tracking-wide">Due Today</span></div>
+                                                <div className="text-right"><p className="font-bold text-slate-800">{formatPHP(debt.amount)}</p><button onClick={() => confirmTogglePaid(debt.id, false)} className="text-[10px] font-bold text-indigo-600 hover:underline mt-1">Mark Paid</button></div>
                                             </div>
-                                        );
-                                    }
-                                    return (
-                                        <>
-                                            {isPayday && (
-                                                <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-2xl shadow-lg shadow-purple-200 text-white flex items-center gap-3">
-                                                    <div className="bg-white/20 p-2 rounded-xl">
-                                                        <Wallet className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm">Payday!</p>
-                                                        <p className="text-xs text-purple-100 opacity-90">Time to budget.</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {dueDebts.map(debt => (
-                                                <div key={debt.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
-                                                    <div>
-                                                        <p className="text-sm font-bold text-slate-800">{debt.title}</p>
-                                                        <span className="text-[10px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded font-bold uppercase tracking-wide">Due Today</span>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="font-bold text-slate-800">{formatPHP(debt.amount)}</p>
-                                                        <button 
-                                                            onClick={() => confirmTogglePaid(debt.id, false)}
-                                                            className="text-[10px] font-bold text-indigo-600 hover:underline mt-1"
-                                                        >
-                                                            Mark Paid
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </>
-                                    );
+                                        ))}
+                                    </>;
                                 })()}
                             </div>
                         </div>
@@ -1040,10 +530,8 @@
             );
           };
 
-          // --- RENDERERS ---
           const renderDashboard = () => (
             <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0">
-              {/* Overview Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-5 relative overflow-hidden shadow-lg shadow-indigo-200">
                   <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-white opacity-10 rounded-full blur-xl"></div>
@@ -1053,869 +541,228 @@
                 <div className="col-span-1 lg:col-span-2 bg-white rounded-3xl p-5 relative overflow-hidden border border-slate-100 shadow-sm">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{t.totalPaid}</p>
                   <p className="text-2xl md:text-4xl font-bold tracking-tight text-slate-800">{formatPHP(totalPaid)}</p>
-                  <div className="absolute bottom-4 right-4 text-green-500">
-                    <CheckCircle className="w-5 h-5 opacity-50" />
-                  </div>
+                  <div className="absolute bottom-4 right-4 text-green-500"><CheckCircle className="w-5 h-5 opacity-50" /></div>
                 </div>
               </div>
-
               <div>
                 <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-500" />
-                    {t.budgetTargets}
-                  </h3>
+                  <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-2"><Sparkles className="w-4 h-4 text-indigo-500" />{t.budgetTargets}</h3>
                 </div>
-
-                {/* --- MAIN CARDS (Overdue + Next) --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
-                  {paydays.length === 0 ? (
-                    <div className="col-span-full text-center p-8 border border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
-                      <p className="text-sm text-slate-400 font-medium">Please configure Paydays in Setup.</p>
-                    </div>
-                  ) : (
+                  {paydays.length === 0 ? <div className="col-span-full text-center p-8 border border-dashed border-slate-200 rounded-3xl bg-slate-50/50"><p className="text-sm text-slate-400 font-medium">Please configure Paydays in Setup.</p></div> : 
                     dashboardData.cards.map((card, idx) => {
                       const isOverdue = card.status === 'overdue';
                       const hasAmount = card.amount > 0;
                       const isExpanded = expandedDashboardCard === idx;
-
                       return (
-                        <div 
-                          key={idx} 
-                          onClick={() => setExpandedDashboardCard(isExpanded ? null : idx)}
-                          className={`relative p-0 rounded-3xl transition-all duration-300 cursor-pointer overflow-hidden
-                          ${isOverdue 
-                            ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-200' 
-                            : hasAmount 
-                              ? 'bg-white border border-slate-100 text-slate-800 shadow-lg shadow-slate-100 hover:shadow-xl hover:-translate-y-1' 
-                              : 'bg-slate-50 border border-slate-100 text-slate-400'
-                          }`}
-                        >
+                        <div key={idx} onClick={() => setExpandedDashboardCard(isExpanded ? null : idx)} className={`relative p-0 rounded-3xl transition-all duration-300 cursor-pointer overflow-hidden ${isOverdue ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-200' : hasAmount ? 'bg-white border border-slate-100 text-slate-800 shadow-lg shadow-slate-100 hover:shadow-xl hover:-translate-y-1' : 'bg-slate-50 border border-slate-100 text-slate-400'}`}>
                           <div className="p-6">
                             <div className="flex justify-between items-start">
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg ${isOverdue ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                    {isOverdue ? t.overdue : `${t.sahodNg} ${card.dayLabel}`}
-                                  </span>
-                                  <span className={`text-xs font-medium ${isOverdue ? 'text-rose-100' : 'text-indigo-500'}`}>
-                                      {formatDate(card.dateStr, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                  </span>
+                                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg ${isOverdue ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{isOverdue ? t.overdue : `${t.sahodNg} ${card.dayLabel}`}</span>
+                                  <span className={`text-xs font-medium ${isOverdue ? 'text-rose-100' : 'text-indigo-500'}`}>{formatDate(card.dateStr, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                                 </div>
-                                <p className={`text-3xl font-bold tracking-tighter ${isOverdue ? 'text-white' : 'text-slate-800'}`}>
-                                  {formatPHP(card.amount)}
-                                </p>
+                                <p className={`text-3xl font-bold tracking-tighter ${isOverdue ? 'text-white' : 'text-slate-800'}`}>{formatPHP(card.amount)}</p>
                               </div>
-                              
-                              <div className={`p-3 rounded-2xl ${isOverdue ? 'bg-white/10 backdrop-blur-sm' : 'bg-indigo-50'}`}>
-                                {isOverdue ? <AlertTriangle className="w-6 h-6 text-white" /> : <Wallet className="w-6 h-6 text-indigo-500" />}
-                              </div>
+                              <div className={`p-3 rounded-2xl ${isOverdue ? 'bg-white/10 backdrop-blur-sm' : 'bg-indigo-50'}`}>{isOverdue ? <AlertTriangle className="w-6 h-6 text-white" /> : <Wallet className="w-6 h-6 text-indigo-500" />}</div>
                             </div>
-
                             {isExpanded && hasAmount && (
                               <div className={`mt-6 pt-4 border-t ${isOverdue ? 'border-white/20' : 'border-slate-100'}`}>
                                 <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 ${isOverdue ? 'text-white/70' : 'text-slate-400'}`}>Breakdown</p>
-                                <div className="space-y-2">
-                                    {card.items.map(item => (
-                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl ${isOverdue ? 'bg-white/10 backdrop-blur-sm border border-white/10' : 'bg-slate-50 border border-slate-100'}`}>
-                                          <div>
-                                            <p className={`text-xs font-bold ${isOverdue ? 'text-white' : 'text-slate-700'}`}>{item.title}</p>
-                                            <p className={`text-[10px] font-medium ${isOverdue ? 'text-rose-100' : 'text-slate-400'}`}>Due: {formatDate(item.dueDate)}</p>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <span className={`font-bold text-sm ${isOverdue ? 'text-white' : 'text-slate-700'}`}>{formatPHP(item.amount)}</span>
-                                            <button 
-                                              onClick={(e) => { 
-                                                e.stopPropagation(); 
-                                                confirmTogglePaid(item.id, item.isPaid); 
-                                              }}
-                                              className={`p-1.5 rounded-lg transition ${isOverdue ? 'bg-white text-rose-600 hover:bg-rose-50' : 'bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-50'}`}
-                                            >
-                                                <Check className="w-3 h-3" />
-                                            </button>
-                                          </div>
-                                      </div>
-                                    ))}
-                                </div>
+                                <div className="space-y-2">{card.items.map(item => (<div key={item.id} className={`flex items-center justify-between p-3 rounded-xl ${isOverdue ? 'bg-white/10 backdrop-blur-sm border border-white/10' : 'bg-slate-50 border border-slate-100'}`}><div><p className={`text-xs font-bold ${isOverdue ? 'text-white' : 'text-slate-700'}`}>{item.title}</p><p className={`text-[10px] font-medium ${isOverdue ? 'text-rose-100' : 'text-slate-400'}`}>Due: {formatDate(item.dueDate)}</p></div><div className="flex items-center gap-2"><span className={`font-bold text-sm ${isOverdue ? 'text-white' : 'text-slate-700'}`}>{formatPHP(item.amount)}</span><button onClick={(e) => { e.stopPropagation(); confirmTogglePaid(item.id, item.isPaid); }} className={`p-1.5 rounded-lg transition ${isOverdue ? 'bg-white text-rose-600 hover:bg-rose-50' : 'bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-50'}`}><Check className="w-3 h-3" /></button></div></div>))}</div>
                               </div>
                             )}
-                            
-                            {!isExpanded && hasAmount && (
-                              <div className={`mt-4 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest ${isOverdue ? 'text-white/80' : 'text-indigo-400'}`}>
-                                  {t.clickToView} <ChevronDown className="w-3 h-3" />
-                              </div>
-                            )}
+                            {!isExpanded && hasAmount && <div className={`mt-4 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest ${isOverdue ? 'text-white/80' : 'text-indigo-400'}`}>{t.clickToView} <ChevronDown className="w-3 h-3" /></div>}
                           </div>
                         </div>
                       );
                     })
-                  )}
+                  }
                 </div>
-
-                {/* --- FUTURE LIST --- */}
                 {dashboardData.list.length > 0 && (
                     <div className="animate-in slide-in-from-bottom-4 duration-500 delay-100">
-                        <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
-                           <CalendarDays className="w-4 h-4 text-indigo-500" /> 
-                           {t.futureSchedule}
-                        </h3>
-                        <div className="space-y-2">
-                            {dashboardData.list.map((group, idx) => (
+                        <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-indigo-500" /> {t.futureSchedule}</h3>
+                        <div className="space-y-2">{dashboardData.list.map((group, idx) => (
                                 <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
                                     <div className="flex items-center gap-4">
-                                        <div className="flex flex-col items-center bg-indigo-50 text-indigo-600 font-bold p-2.5 rounded-xl min-w-[50px]">
-                                            <span className="text-[10px] uppercase text-indigo-400 leading-none">Day</span>
-                                            <span className="text-lg leading-none mt-0.5">{group.dayLabel}</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-800">
-                                                {formatDate(group.dateStr, { month: 'long', day: 'numeric', year: 'numeric' })}
-                                            </p>
-                                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">
-                                                {group.items.length} {t.itemCount}
-                                            </p>
-                                        </div>
+                                        <div className="flex flex-col items-center bg-indigo-50 text-indigo-600 font-bold p-2.5 rounded-xl min-w-[50px]"><span className="text-[10px] uppercase text-indigo-400 leading-none">Day</span><span className="text-lg leading-none mt-0.5">{group.dayLabel}</span></div>
+                                        <div><p className="text-sm font-bold text-slate-800">{formatDate(group.dateStr, { month: 'long', day: 'numeric', year: 'numeric' })}</p><p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{group.items.length} {t.itemCount}</p></div>
                                     </div>
                                     <p className="font-bold text-slate-800 text-lg">{formatPHP(group.amount)}</p>
                                 </div>
-                            ))}
-                        </div>
+                        ))}</div>
                     </div>
                 )}
               </div>
             </div>
-          );
-
-          const renderAddForm = () => (
-            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 max-w-2xl mx-auto">
-              <div className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-50 p-5 rounded-3xl">
-                <div className="flex gap-4">
-                  <div className="p-2.5 bg-white rounded-xl h-fit shadow-sm text-indigo-500">
-                    <CreditCard className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-indigo-900 text-sm mb-1">{t.howItWorks}</h4>
-                    <p className="text-xs font-medium text-slate-500 leading-relaxed">{t.logicText}</p>
-                  </div>
-                </div>
-              </div>
-              <form onSubmit={handleAddDebt} className="bg-white border border-slate-100 p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-200/50 space-y-6">
-                <h3 className="font-bold text-slate-800 text-lg mb-2">{t.newDebtTitle}</h3>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.debtName}</label>
-                  <input 
-                    list="saved-descriptions"
-                    type="text" 
-                    placeholder="e.g., iPhone 15" 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" 
-                    value={newDebtName} 
-                    onChange={(e) => setNewDebtName(e.target.value)} 
-                    required 
-                  />
-                  <datalist id="saved-descriptions">
-                    {savedDescriptions.map((desc, i) => (
-                      <option key={i} value={desc} />
-                    ))}
-                  </datalist>
-                </div>
-                {/* Changed grid-cols-2 to grid-cols-1 for vertical stacking */}
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.amount}</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-3.5 text-slate-400 font-bold">₱</span>
-                      <input type="number" step="0.01" placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-8 pr-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" value={newDebtAmount} onChange={(e) => setNewDebtAmount(e.target.value)} required />
-                    </div>
-                  </div>
-                  
-                  {/* Split Toggle - Only show if multiple paydays */}
-                  {paydays.length > 1 && (
-                      <div className="flex items-center justify-between bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100 cursor-pointer" onClick={() => setEnableSplit(!enableSplit)}>
-                          <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-xl transition-colors ${enableSplit ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                                  <Split className="w-4 h-4" />
-                              </div>
-                              <div>
-                                  <p className="text-xs font-bold text-slate-700">{t.splitPayment}</p>
-                                  <p className="text-[10px] text-slate-400 leading-tight">{t.splitInfo}</p>
-                              </div>
-                          </div>
-                          <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${enableSplit ? 'bg-indigo-500' : 'bg-slate-200'}`}>
-                              <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${enableSplit ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                          </div>
-                      </div>
-                  )}
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.terms}</label>
-                    <div className="relative">
-                      <input type="number" min="1" placeholder="1" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 pr-10 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" value={newDebtTerms} onChange={(e) => setNewDebtTerms(e.target.value)} required />
-                      <Layers className="w-4 h-4 text-slate-300 absolute right-4 top-4 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.dateIncurred}</label>
-                  <input type="date" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all appearance-none" value={newDebtDate} onChange={(e) => setNewDebtDate(e.target.value)} required />
-                </div>
-                <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold tracking-wide shadow-lg shadow-slate-200 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-300 transition-all flex justify-center items-center gap-2 mt-4">
-                  <Plus className="w-5 h-5" /> {t.saveDebt}
-                </button>
-              </form>
-            </div>
-          );
-
-          const renderLogs = () => (
-            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 pb-20 md:pb-0">
-              
-              {/* Tabs - Only 2 now */}
-              <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm max-w-md">
-                {['ongoing', 'completed'].map(tabKey => (
-                  <button 
-                    key={tabKey}
-                    onClick={() => setLogTab(tabKey)} 
-                    className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wide rounded-xl transition-all 
-                      ${logTab === tabKey 
-                        ? 'bg-slate-900 text-white shadow-md' 
-                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    {t[tabKey]} ({tabKey === 'ongoing' ? ongoingLogs.length : completedLogs.length})
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {(logTab === 'ongoing' ? ongoingLogs : completedLogs).length === 0 ? (
-                  <div className="col-span-full text-center py-20 px-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/50">
-                    <div className="bg-white p-4 rounded-full inline-block mb-3 shadow-sm">
-                      <List className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <p className="text-sm font-medium text-slate-400">{t.noRecords}</p>
-                    {logTab === 'ongoing' && <button onClick={() => setActiveTab('add')} className="mt-2 text-indigo-600 font-bold text-xs hover:underline">{t.addNow}</button>}
-                  </div>
-                ) : (
-                  (logTab === 'ongoing' ? ongoingLogs : completedLogs).map((group) => {
-                    const isExpanded = expandedGroups[group.parentId];
-                    const paidTerms = group.terms.filter(t => t.isPaid).length;
-                    const progress = (paidTerms / group.terms.length) * 100;
-                    return (
-                      <div key={group.parentId} className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md h-fit">
-                        <div 
-                          onClick={() => toggleGroupExpand(group.parentId)}
-                          className="p-5 cursor-pointer relative"
-                        >
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-lg text-slate-800">{group.title}</h4>
-                                <button 
-                                  onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditModal(group);
-                                  }}
-                                  className="p-1 text-slate-300 hover:text-indigo-500 transition"
-                                >
-                                    <Edit2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-2 mt-2">
-                                {!group.isFullyPaid ? (
-                                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {t.nextDue}: {formatDate(group.nextDue)}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] bg-green-50 text-green-600 px-2 py-1 rounded-md font-bold flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" /> {t.paidStatus}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-xl text-slate-800">
-                                {formatPHP(group.isFullyPaid ? group.totalAmount : (group.totalAmount - group.paidAmount))}
-                              </p>
-                              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                                {group.isFullyPaid ? 'Total Paid' : 'Balance'}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Progress Bar */}
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-4">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 ${group.isFullyPaid ? 'bg-green-500' : 'bg-indigo-500'}`} 
-                              style={{ width: `${progress}%` }}
-                            ></div>
-                          </div>
-                          
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
-                              {paidTerms} / {group.terms.length} Installments Paid
-                            </span>
-                            <div className="flex gap-2 items-center">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  confirmDeleteGroup(group.parentId);
-                                }}
-                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                              <button className="text-slate-400 bg-slate-50 p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-600 transition">
-                                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {isExpanded && (
-                          <div className="bg-slate-50/50 border-t border-slate-100 p-4 space-y-3">
-                            {group.terms.map((term, idx) => {
-                              const termBudgetDay = getBudgetSourceDay(term.dueDate, paydays);
-                              return (
-                                <div key={term.id} className="bg-white p-3 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${term.isPaid ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {idx + 1}
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-bold text-slate-700">{formatDate(term.dueDate)}</p>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-medium text-slate-400">{formatPHP(term.amount)}</span>
-                                        {!term.isPaid && (
-                                          <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
-                                            {t.sahodNg} {termBudgetDay}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2">
-                                      {!term.isPaid ? (
-                                        <button 
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            confirmTogglePaid(term.id, term.isPaid); 
-                                          }}
-                                          className="p-2 bg-indigo-500 text-white rounded-lg shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition"
-                                        >
-                                          <Check className="w-3 h-3" />
-                                        </button>
-                                      ) : (
-                                        <button 
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            confirmTogglePaid(term.id, term.isPaid); 
-                                          }}
-                                          className="p-2 bg-slate-100 text-slate-400 rounded-lg hover:bg-slate-200 transition"
-                                        >
-                                          <CheckCircle className="w-3 h-3" />
-                                        </button>
-                                      )}
-                                      <button 
-                                        onClick={(e) => { 
-                                          e.stopPropagation(); 
-                                          confirmDelete(term.id); 
-                                        }}
-                                        className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          );
-
-          const renderSettings = () => (
-            <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0 max-w-4xl">
-              
-              {/* Language */}
-              <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-50 rounded-xl">
-                    <Globe className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-sm">{t.language}</h3>
-                    <p className="text-[10px] text-slate-400 font-medium">Select Interface</p>
-                  </div>
-                </div>
-                <div className="flex bg-slate-50 p-1 rounded-xl">
-                  <button onClick={() => setLang('en')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'en' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>EN</button>
-                  <button onClick={() => setLang('tl')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'tl' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>PH</button>
-                </div>
-              </div>
-
-               {/* INSTALL APP BANNER (Keep this for detailed instructions) */}
-               {deferredPrompt && (
-                  <div className="bg-gradient-to-r from-indigo-500 to-violet-600 p-6 rounded-3xl shadow-xl shadow-indigo-200 text-white flex items-center justify-between">
-                      <div>
-                          <h2 className="text-lg font-bold mb-1">{t.installApp}</h2>
-                          <p className="text-xs text-indigo-100 font-medium opacity-90">{t.installDesc}</p>
-                      </div>
-                      <button 
-                          onClick={handleInstallClick}
-                          className="bg-white text-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:scale-105 transition active:scale-95 flex items-center gap-2"
-                      >
-                          <Smartphone className="w-4 h-4" />
-                          Install
-                      </button>
-                  </div>
-               )}
-
-               {/* iOS INSTALL INSTRUCTIONS (Visible only on iOS) */}
-               {isIOS && (
-                  <div className="bg-slate-800 p-6 rounded-3xl shadow-xl text-white">
-                      <div className="flex items-center gap-3 mb-3">
-                          <div className="p-2 bg-white/10 rounded-xl">
-                              <Share className="w-5 h-5" />
-                          </div>
-                          <div>
-                              <h2 className="text-lg font-bold">{t.installIOS}</h2>
-                          </div>
-                      </div>
-                      <p className="text-xs text-slate-300 leading-relaxed font-medium mb-4">
-                          {t.installIOSDesc}
-                      </p>
-                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-900/50 p-2 rounded-lg w-fit">
-                          Safari Required
-                      </div>
-                  </div>
-               )}
-
-               {/* Data Management */}
-               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
-                    <div className="mb-4">
-                        <h2 className="text-lg font-bold text-slate-800 mb-1">{t.dataManagement}</h2>
-                        <p className="text-xs text-slate-400 font-medium">{t.backupRestore}</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <button 
-                            onClick={handleBackup}
-                            className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition gap-2 group"
-                        >
-                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl group-hover:scale-110 transition">
-                              <Download className="w-6 h-6" />
-                            </div>
-                            <span className="text-xs font-bold text-slate-700">{t.backup}</span>
-                        </button>
-                        <button 
-                            onClick={() => fileInputRef.current.click()}
-                            className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition gap-2 group"
-                        >
-                             <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl group-hover:scale-110 transition">
-                               <Upload className="w-6 h-6" />
-                             </div>
-                            <span className="text-xs font-bold text-slate-700">{t.restore}</span>
-                        </button>
-                        <input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            onChange={handleRestore} 
-                            className="hidden" 
-                            accept=".json"
-                        />
-                    </div>
-                </div>
-
-              {/* Saved Descriptions Management */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
-                <div className="mb-4">
-                  <h2 className="text-lg font-bold text-slate-800 mb-1">{t.savedDescHeader}</h2>
-                  <p className="text-xs text-slate-400 font-medium">{t.savedDescSub}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {savedDescriptions.map((desc, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                      <Tag className="w-3 h-3 text-slate-400" />
-                      <span className="text-xs font-bold text-slate-700">{desc}</span>
-                      <button 
-                        onClick={() => confirmDeleteDesc(desc)} 
-                        className="text-slate-300 hover:text-rose-500 transition"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {savedDescriptions.length === 0 && <span className="text-xs text-slate-400 italic">No saved descriptions yet.</span>}
-                </div>
-              </div>
-
-              {/* Payday Selector */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
-                <div className="mb-6">
-                  <h2 className="text-lg font-bold text-slate-800 mb-1">{t.settingsHeader}</h2>
-                  <p className="text-xs text-slate-400 font-medium">{t.settingsSub}</p>
-                </div>
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="font-bold text-slate-700 text-xs uppercase tracking-wide">{t.selectedPaydays}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {paydays.length > 0 ? paydays.sort((a,b)=>a-b).map(day => (<span key={day} className="bg-slate-800 text-white px-2 py-0.5 rounded-md text-[10px] font-bold">{day}</span>)) : <span className="text-slate-400 text-xs">{t.none}</span>}
-                  </div>
-                </div>
-                <div className="grid grid-cols-7 gap-2">
-                  {[...Array(31)].map((_, i) => {
-                    const day = i + 1;
-                    const isSelected = paydays.includes(day);
-                    return (
-                      <button 
-                        key={day} 
-                        onClick={() => togglePayday(day)} 
-                        className={`aspect-square flex items-center justify-center rounded-2xl text-xs font-bold transition-all 
-                          ${isSelected 
-                            ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200 scale-105' 
-                            : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-
-          // Sidebar Navigation Component for Desktop
-          const SidebarNav = () => (
-              <div className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full p-6">
-                  <div className="mb-8 flex items-center gap-3 px-2">
-                      <div className="bg-indigo-600 p-2 rounded-xl">
-                          <Wallet className="w-6 h-6 text-white" />
-                      </div>
-                      <h1 className="text-xl font-black text-slate-800 tracking-tight">Debt Tracker</h1>
-                  </div>
-
-                  <div className="space-y-2">
-                      {[
-                          { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
-                          { id: 'add', icon: PlusCircle, label: t.add },
-                          { id: 'logs', icon: List, label: t.logs },
-                          { id: 'calendar', icon: Calendar, label: t.calendar },
-                          { id: 'settings', icon: Settings, label: t.settings },
-                      ].map((item) => (
-                          <button
-                              key={item.id}
-                              onClick={() => setActiveTab(item.id)}
-                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200
-                              ${activeTab === item.id 
-                                  ? 'bg-indigo-50 text-indigo-600 shadow-sm' 
-                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
-                          >
-                              <item.icon className="w-5 h-5" />
-                              {item.label}
-                          </button>
-                      ))}
-                  </div>
-
-                  <div className="mt-auto pt-6 border-t border-slate-100 space-y-2">
-                      {/* NEW: Install Button for Desktop Sidebar */}
-                      {deferredPrompt && (
-                          <button 
-                              onClick={handleInstallClick}
-                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-lg shadow-indigo-200 hover:scale-105 transition-all"
-                          >
-                              <Smartphone className="w-5 h-5" />
-                              {t.installApp}
-                          </button>
-                      )}
-                      
-                      <button 
-                        onClick={() => setShowActivityLog(true)}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all"
-                      >
-                          <History className="w-5 h-5" />
-                          {t.activity}
-                      </button>
-                  </div>
-              </div>
           );
 
           return (
             <>
-              {/* SIDEBAR (Desktop) */}
-              <SidebarNav />
+              {/* DESKTOP SIDEBAR */}
+              <div className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full p-6">
+                  <div className="mb-8 flex items-center gap-3 px-2"><div className="bg-indigo-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div><h1 className="text-xl font-black text-slate-800 tracking-tight">Debt Tracker</h1></div>
+                  <div className="space-y-2">
+                      {[ { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard }, { id: 'add', icon: PlusCircle, label: t.add }, { id: 'logs', icon: List, label: t.logs }, { id: 'calendar', icon: Calendar, label: t.calendar }, { id: 'settings', icon: Settings, label: t.settings } ].map((item) => (
+                          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab === item.id ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}><item.icon className="w-5 h-5" />{item.label}</button>
+                      ))}
+                  </div>
+                  <div className="mt-auto pt-6 border-t border-slate-100 space-y-2">
+                      {deferredPrompt && <button onClick={handleInstallClick} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-lg shadow-indigo-200 hover:scale-105 transition-all"><Smartphone className="w-5 h-5" />{t.installApp}</button>}
+                      <button onClick={() => setShowActivityLog(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all"><History className="w-5 h-5" />{t.activity}</button>
+                  </div>
+              </div>
 
               {/* MAIN CONTENT AREA */}
               <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-gray-50/50">
-                  
-                  {/* MOBILE HEADER */}
                   <div className="md:hidden bg-white/80 backdrop-blur-xl pt-12 pb-4 px-6 sticky top-0 z-50 border-b border-slate-100/50 flex justify-between items-center">
-                    <div className="flex flex-col gap-1">
-                      <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">
-                        Debt Tracker
-                      </h1>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        {activeTab === 'dashboard' && t.dashboard} 
-                        {activeTab === 'add' && t.add} 
-                        {activeTab === 'logs' && t.logs} 
-                        {activeTab === 'calendar' && t.calendar} 
-                        {activeTab === 'settings' && t.settings}
-                      </p>
-                    </div>
+                    <div className="flex flex-col gap-1"><h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1">Debt Tracker</h1><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{activeTab === 'dashboard' && t.dashboard}{activeTab === 'add' && t.add}{activeTab === 'logs' && t.logs}{activeTab === 'calendar' && t.calendar}{activeTab === 'settings' && t.settings}</p></div>
                     <div className="flex gap-2">
-                        {/* NEW: Install Button for Mobile Header */}
-                        {deferredPrompt && (
-                            <button 
-                                onClick={handleInstallClick}
-                                className="p-3 bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition active:scale-95"
-                                title={t.installApp}
-                            >
-                                <Smartphone className="w-5 h-5" />
-                            </button>
-                        )}
-                        <button 
-                          onClick={() => setShowActivityLog(true)}
-                          className="p-3 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition active:scale-95"
-                        >
-                          <History className="w-5 h-5 text-slate-600" />
-                        </button>
+                        {deferredPrompt && <button onClick={handleInstallClick} className="p-3 bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition active:scale-95"><Smartphone className="w-5 h-5" /></button>}
+                        <button onClick={() => setShowActivityLog(true)} className="p-3 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition active:scale-95"><History className="w-5 h-5 text-slate-600" /></button>
                     </div>
                   </div>
 
-                  {/* Desktop Header Title (Simple) */}
                   <div className="hidden md:flex py-8 px-8 items-center justify-between">
-                     <div>
-                        <h2 className="text-2xl font-bold text-slate-800">
-                            {activeTab === 'dashboard' && t.dashboard}
-                            {activeTab === 'add' && t.addRecord}
-                            {activeTab === 'logs' && t.debtLogs}
-                            {activeTab === 'calendar' && t.calendar}
-                            {activeTab === 'settings' && t.settingsHeader}
-                        </h2>
-                        <p className="text-slate-400 text-sm font-medium">Manage your finances efficiently</p>
-                     </div>
-                     <div className="flex items-center gap-2">
-                        <span className="bg-white px-3 py-1.5 rounded-full text-xs font-bold text-slate-500 border border-slate-200 shadow-sm">
-                            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                        </span>
-                     </div>
+                     <div><h2 className="text-2xl font-bold text-slate-800">{activeTab === 'dashboard' && t.dashboard}{activeTab === 'add' && t.addRecord}{activeTab === 'logs' && t.debtLogs}{activeTab === 'calendar' && t.calendar}{activeTab === 'settings' && t.settingsHeader}</h2><p className="text-slate-400 text-sm font-medium">Manage your finances efficiently</p></div>
+                     <div className="flex items-center gap-2"><span className="bg-white px-3 py-1.5 rounded-full text-xs font-bold text-slate-500 border border-slate-200 shadow-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
                   </div>
 
-                  {/* SCROLLABLE CONTENT */}
                   <div className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide">
                     {activeTab === 'dashboard' && renderDashboard()}
-                    {activeTab === 'add' && renderAddForm()}
-                    {activeTab === 'logs' && renderLogs()}
+                    {activeTab === 'add' && (
+                        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0 max-w-2xl mx-auto">
+                          <div className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-50 p-5 rounded-3xl"><div className="flex gap-4"><div className="p-2.5 bg-white rounded-xl h-fit shadow-sm text-indigo-500"><CreditCard className="w-6 h-6" /></div><div><h4 className="font-bold text-indigo-900 text-sm mb-1">{t.howItWorks}</h4><p className="text-xs font-medium text-slate-500 leading-relaxed">{t.logicText}</p></div></div></div>
+                          <form onSubmit={handleAddDebt} className="bg-white border border-slate-100 p-5 md:p-8 rounded-3xl shadow-xl shadow-slate-200/50 space-y-6">
+                            <h3 className="font-bold text-slate-800 text-lg mb-2">{t.newDebtTitle}</h3>
+                            <div className="space-y-1.5"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.debtName}</label><input list="saved-descriptions" type="text" placeholder="e.g., iPhone 15" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" value={newDebtName} onChange={(e) => setNewDebtName(e.target.value)} required /><datalist id="saved-descriptions">{savedDescriptions.map((desc, i) => (<option key={i} value={desc} />))}</datalist></div>
+                            <div className="grid grid-cols-1 gap-4">
+                              <div className="space-y-1.5"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.amount}</label><div className="relative"><span className="absolute left-4 top-3.5 text-slate-400 font-bold">₱</span><input type="number" step="0.01" placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-8 pr-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" value={newDebtAmount} onChange={(e) => setNewDebtAmount(e.target.value)} required /></div></div>
+                              {paydays.length > 1 && (<div className="flex items-center justify-between bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100 cursor-pointer" onClick={() => setEnableSplit(!enableSplit)}><div className="flex items-center gap-3"><div className={`p-2 rounded-xl transition-colors ${enableSplit ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500'}`}><Split className="w-4 h-4" /></div><div><p className="text-xs font-bold text-slate-700">{t.splitPayment}</p><p className="text-[10px] text-slate-400 leading-tight">{t.splitInfo}</p></div></div><div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${enableSplit ? 'bg-indigo-500' : 'bg-slate-200'}`}><div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${enableSplit ? 'translate-x-4' : 'translate-x-0'}`}></div></div></div>)}
+                              <div className="space-y-1.5"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.terms}</label><div className="relative"><input type="number" min="1" placeholder="1" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 pr-10 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" value={newDebtTerms} onChange={(e) => setNewDebtTerms(e.target.value)} required /><Layers className="w-4 h-4 text-slate-300 absolute right-4 top-4 pointer-events-none" /></div></div>
+                            </div>
+                            <div className="space-y-1.5"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.dateIncurred}</label><input type="date" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all appearance-none" value={newDebtDate} onChange={(e) => setNewDebtDate(e.target.value)} required /></div>
+                            <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold tracking-wide shadow-lg shadow-slate-200 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-300 transition-all flex justify-center items-center gap-2 mt-4"><Plus className="w-5 h-5" /> {t.saveDebt}</button>
+                          </form>
+                        </div>
+                    )}
+                    {activeTab === 'logs' && (
+                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 pb-20 md:pb-0">
+                          <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm max-w-md">{['ongoing', 'completed'].map(tabKey => (<button key={tabKey} onClick={() => setLogTab(tabKey)} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wide rounded-xl transition-all ${logTab === tabKey ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>{t[tabKey]} ({tabKey === 'ongoing' ? ongoingLogs.length : completedLogs.length})</button>))}</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {(logTab === 'ongoing' ? ongoingLogs : completedLogs).length === 0 ? <div className="col-span-full text-center py-20 px-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/50"><div className="bg-white p-4 rounded-full inline-block mb-3 shadow-sm"><List className="w-8 h-8 text-slate-300" /></div><p className="text-sm font-medium text-slate-400">{t.noRecords}</p>{logTab === 'ongoing' && <button onClick={() => setActiveTab('add')} className="mt-2 text-indigo-600 font-bold text-xs hover:underline">{t.addNow}</button>}</div> : 
+                              (logTab === 'ongoing' ? ongoingLogs : completedLogs).map((group) => {
+                                const isExpanded = expandedGroups[group.parentId];
+                                const paidTerms = group.terms.filter(t => t.isPaid).length;
+                                const progress = (paidTerms / group.terms.length) * 100;
+                                return (
+                                  <div key={group.parentId} className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md h-fit">
+                                    <div onClick={() => toggleGroupExpand(group.parentId)} className="p-5 cursor-pointer relative">
+                                      <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                          <div className="flex items-center gap-2"><h4 className="font-bold text-lg text-slate-800">{group.title}</h4><button onClick={(e) => { e.stopPropagation(); openEditModal(group); }} className="p-1 text-slate-300 hover:text-indigo-500 transition"><Edit2 className="w-3 h-3" /></button></div>
+                                          <div className="flex items-center gap-2 mt-2">{!group.isFullyPaid ? <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold flex items-center gap-1"><Clock className="w-3 h-3" />{t.nextDue}: {formatDate(group.nextDue)}</span> : <span className="text-[10px] bg-green-50 text-green-600 px-2 py-1 rounded-md font-bold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {t.paidStatus}</span>}</div>
+                                        </div>
+                                        <div className="text-right"><p className="font-bold text-xl text-slate-800">{formatPHP(group.isFullyPaid ? group.totalAmount : (group.totalAmount - group.paidAmount))}</p><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{group.isFullyPaid ? 'Total Paid' : 'Balance'}</p></div>
+                                      </div>
+                                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-4"><div className={`h-full rounded-full transition-all duration-500 ${group.isFullyPaid ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${progress}%` }}></div></div>
+                                      <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-slate-400 uppercase">{paidTerms} / {group.terms.length} Installments Paid</span><div className="flex gap-2 items-center"><button onClick={(e) => { e.stopPropagation(); confirmDeleteGroup(group.parentId); }} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Delete Record"><Trash2 className="w-4 h-4" /></button><button className="text-slate-400 bg-slate-50 p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-600 transition">{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button></div></div>
+                                    </div>
+                                    {isExpanded && (
+                                      <div className="bg-slate-50/50 border-t border-slate-100 p-4 space-y-3">
+                                        {group.terms.map((term, idx) => {
+                                          const termBudgetDay = getBudgetSourceDay(term.dueDate, paydays);
+                                          return (
+                                            <div key={term.id} className="bg-white p-3 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
+                                              <div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${term.isPaid ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{idx + 1}</div><div><p className="text-xs font-bold text-slate-700">{formatDate(term.dueDate)}</p><div className="flex items-center gap-2"><span className="text-[10px] font-medium text-slate-400">{formatPHP(term.amount)}</span>{!term.isPaid && <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">{t.sahodNg} {termBudgetDay}</span>}</div></div></div>
+                                              <div className="flex gap-2">{!term.isPaid ? <button onClick={(e) => { e.stopPropagation(); confirmTogglePaid(term.id, term.isPaid); }} className="p-2 bg-indigo-500 text-white rounded-lg shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition"><Check className="w-3 h-3" /></button> : <button onClick={(e) => { e.stopPropagation(); confirmTogglePaid(term.id, term.isPaid); }} className="p-2 bg-slate-100 text-slate-400 rounded-lg hover:bg-slate-200 transition"><CheckCircle className="w-3 h-3" /></button>}<button onClick={(e) => { e.stopPropagation(); confirmDelete(term.id); }} className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"><Trash2 className="w-3 h-3" /></button></div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            }
+                          </div>
+                        </div>
+                    )}
                     {activeTab === 'calendar' && renderCalendar()}
-                    {activeTab === 'settings' && renderSettings()}
+                    {activeTab === 'settings' && (
+                        <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0 max-w-4xl">
+                          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between"><div className="flex items-center gap-3"><div className="p-2 bg-indigo-50 rounded-xl"><Globe className="w-5 h-5 text-indigo-600" /></div><div><h3 className="font-bold text-slate-800 text-sm">{t.language}</h3><p className="text-[10px] text-slate-400 font-medium">Select Interface</p></div></div><div className="flex bg-slate-50 p-1 rounded-xl"><button onClick={() => setLang('en')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'en' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>EN</button><button onClick={() => setLang('tl')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'tl' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>PH</button></div></div>
+                          {deferredPrompt && <div className="bg-gradient-to-r from-indigo-500 to-violet-600 p-6 rounded-3xl shadow-xl shadow-indigo-200 text-white flex items-center justify-between"><div><h2 className="text-lg font-bold mb-1">{t.installApp}</h2><p className="text-xs text-indigo-100 font-medium opacity-90">{t.installDesc}</p></div><button onClick={handleInstallClick} className="bg-white text-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:scale-105 transition active:scale-95 flex items-center gap-2"><Smartphone className="w-4 h-4" />Install</button></div>}
+                          {isIOS && <div className="bg-slate-800 p-6 rounded-3xl shadow-xl text-white"><div className="flex items-center gap-3 mb-3"><div className="p-2 bg-white/10 rounded-xl"><Share className="w-5 h-5" /></div><div><h2 className="text-lg font-bold">{t.installIOS}</h2></div></div><p className="text-xs text-slate-300 leading-relaxed font-medium mb-4">{t.installIOSDesc}</p><div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-900/50 p-2 rounded-lg w-fit">Safari Required</div></div>}
+                          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50"><div className="mb-4"><h2 className="text-lg font-bold text-slate-800 mb-1">{t.dataManagement}</h2><p className="text-xs text-slate-400 font-medium">{t.backupRestore}</p></div><div className="flex gap-3"><button onClick={handleBackup} className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition gap-2 group"><div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl group-hover:scale-110 transition"><Download className="w-6 h-6" /></div><span className="text-xs font-bold text-slate-700">{t.backup}</span></button><button onClick={() => fileInputRef.current.click()} className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 transition gap-2 group"><div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl group-hover:scale-110 transition"><Upload className="w-6 h-6" /></div><span className="text-xs font-bold text-slate-700">{t.restore}</span></button><input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" /></div></div>
+                          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50"><div className="mb-4"><h2 className="text-lg font-bold text-slate-800 mb-1">{t.savedDescHeader}</h2><p className="text-xs text-slate-400 font-medium">{t.savedDescSub}</p></div><div className="flex flex-wrap gap-2">{savedDescriptions.map((desc, i) => (<div key={i} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100"><Tag className="w-3 h-3 text-slate-400" /><span className="text-xs font-bold text-slate-700">{desc}</span><button onClick={() => confirmDeleteDesc(desc)} className="text-slate-300 hover:text-rose-500 transition"><X className="w-3 h-3" /></button></div>))}{savedDescriptions.length === 0 && <span className="text-xs text-slate-400 italic">No saved descriptions yet.</span>}</div></div>
+                          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50"><div className="mb-6"><h2 className="text-lg font-bold text-slate-800 mb-1">{t.settingsHeader}</h2><p className="text-xs text-slate-400 font-medium">{t.settingsSub}</p></div><div className="mb-4 flex items-center justify-between"><p className="font-bold text-slate-700 text-xs uppercase tracking-wide">{t.selectedPaydays}</p><div className="flex flex-wrap gap-1">{paydays.length > 0 ? paydays.sort((a,b)=>a-b).map(day => (<span key={day} className="bg-slate-800 text-white px-2 py-0.5 rounded-md text-[10px] font-bold">{day}</span>)) : <span className="text-slate-400 text-xs">{t.none}</span>}</div></div><div className="grid grid-cols-7 gap-2">{[...Array(31)].map((_, i) => { const day = i + 1; const isSelected = paydays.includes(day); return (<button key={day} onClick={() => togglePayday(day)} className={`aspect-square flex items-center justify-center rounded-2xl text-xs font-bold transition-all ${isSelected ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>{day}</button>); })}</div></div>
+                        </div>
+                    )}
                   </div>
 
-                  {/* MOBILE BOTTOM NAV */}
                   <div className="md:hidden fixed bottom-6 left-6 right-6 z-50">
                     <div className="bg-white/80 backdrop-blur-xl p-2 rounded-3xl shadow-2xl shadow-slate-200 flex justify-between items-center max-w-[360px] mx-auto border border-white/50 gap-2">
-                      <button onClick={() => setActiveTab('dashboard')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                        <LayoutDashboard className="w-6 h-6" strokeWidth={2.5} />
-                      </button>
-                      <button onClick={() => setActiveTab('add')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'add' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                        <PlusCircle className="w-6 h-6" strokeWidth={2.5} />
-                      </button>
-                      <button onClick={() => setActiveTab('logs')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'logs' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                        <List className="w-6 h-6" strokeWidth={2.5} />
-                      </button>
-                      <button onClick={() => setActiveTab('calendar')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'calendar' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                        <Calendar className="w-6 h-6" strokeWidth={2.5} />
-                      </button>
-                      <button onClick={() => setActiveTab('settings')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'settings' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                        <Settings className="w-6 h-6" strokeWidth={2.5} />
-                      </button>
+                      <button onClick={() => setActiveTab('dashboard')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard className="w-6 h-6" strokeWidth={2.5} /></button>
+                      <button onClick={() => setActiveTab('add')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'add' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}><PlusCircle className="w-6 h-6" strokeWidth={2.5} /></button>
+                      <button onClick={() => setActiveTab('logs')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'logs' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}><List className="w-6 h-6" strokeWidth={2.5} /></button>
+                      <button onClick={() => setActiveTab('calendar')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'calendar' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}><Calendar className="w-6 h-6" strokeWidth={2.5} /></button>
+                      <button onClick={() => setActiveTab('settings')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'settings' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}><Settings className="w-6 h-6" strokeWidth={2.5} /></button>
                     </div>
                   </div>
               </div>
               
-              {/* EDIT MODAL OVERLAY */}
               {editModal.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
-                                <Edit2 className="w-5 h-5" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-800">{t.editTitle}</h3>
-                        </div>
-                        <button onClick={() => setEditModal({...editModal, isOpen: false})} className="text-slate-400 hover:text-slate-600">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                    
+                    <div className="flex justify-between items-center mb-6"><div className="flex items-center gap-3"><div className="bg-indigo-50 p-2 rounded-xl text-indigo-600"><Edit2 className="w-5 h-5" /></div><h3 className="text-lg font-bold text-slate-800">{t.editTitle}</h3></div><button onClick={() => setEditModal({...editModal, isOpen: false})} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button></div>
                     <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.debtName}</label>
-                          <input 
-                            type="text" 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all appearance-none" 
-                            value={editModal.currentTitle} 
-                            onChange={(e) => setEditModal({...editModal, currentTitle: e.target.value})} 
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.amount}</label>
-                          <input 
-                            type="number" 
-                            step="0.01"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all appearance-none" 
-                            value={editModal.currentAmount} 
-                            onChange={(e) => setEditModal({...editModal, currentAmount: e.target.value})} 
-                          />
-                          <p className="text-[10px] text-slate-400 mt-1 italic">Updates all monthly terms for this record.</p>
-                        </div>
+                        <div className="space-y-1.5"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.debtName}</label><input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all appearance-none" value={editModal.currentTitle} onChange={(e) => setEditModal({...editModal, currentTitle: e.target.value})} /></div>
+                        <div className="space-y-1.5"><label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.amount}</label><input type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all appearance-none" value={editModal.currentAmount} onChange={(e) => setEditModal({...editModal, currentAmount: e.target.value})} /><p className="text-[10px] text-slate-400 mt-1 italic">Updates all monthly terms for this record.</p></div>
                     </div>
-
-                    <div className="flex gap-3 mt-6">
-                      <button 
-                        onClick={() => setEditModal({ ...editModal, isOpen: false })}
-                        className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition"
-                      >
-                        {t.cancel}
-                      </button>
-                      <button 
-                        onClick={saveEdit}
-                        className="flex-1 py-3 text-sm font-bold text-white bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition"
-                      >
-                        {t.saveChanges}
-                      </button>
-                    </div>
+                    <div className="flex gap-3 mt-6"><button onClick={() => setEditModal({ ...editModal, isOpen: false })} className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition">{t.cancel}</button><button onClick={saveEdit} className="flex-1 py-3 text-sm font-bold text-white bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">{t.saveChanges}</button></div>
                   </div>
                 </div>
               )}
 
-              {/* CONFIRMATION MODAL OVERLAY */}
               {confirmModal.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmModal.type === 'danger' ? 'bg-rose-50 text-rose-500' : confirmModal.type === 'success' ? 'bg-green-50 text-green-500' : 'bg-slate-50 text-slate-500'}`}>
-                      <AlertTriangle className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-800 mb-2">{confirmModal.title}</h3>
-                    <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">{confirmModal.message}</p>
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                        className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition"
-                      >
-                        {t.cancel}
-                      </button>
-                      <button 
-                        onClick={confirmModal.onConfirm}
-                        className={`flex-1 py-3 text-sm font-bold text-white rounded-2xl shadow-lg transition ${confirmModal.type === 'danger' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200' : confirmModal.type === 'success' ? 'bg-green-500 hover:bg-green-600 shadow-green-200' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}
-                      >
-                        {t.confirm}
-                      </button>
-                    </div>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmModal.type === 'danger' ? 'bg-rose-50 text-rose-500' : confirmModal.type === 'success' ? 'bg-green-50 text-green-500' : 'bg-slate-50 text-slate-500'}`}><AlertTriangle className="w-6 h-6" /></div><h3 className="text-lg font-bold text-slate-800 mb-2">{confirmModal.title}</h3><p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">{confirmModal.message}</p><div className="flex gap-3"><button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-50 rounded-2xl hover:bg-slate-100 transition">{t.cancel}</button><button onClick={confirmModal.onConfirm} className={`flex-1 py-3 text-sm font-bold text-white rounded-2xl shadow-lg transition ${confirmModal.type === 'danger' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200' : confirmModal.type === 'success' ? 'bg-green-500 hover:bg-green-600 shadow-green-200' : 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'}`}>{t.confirm}</button></div>
                   </div>
                 </div>
               )}
 
-              {/* NOTIFICATION MODAL (New) */}
               {notification.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${notification.type === 'error' ? 'bg-rose-50 text-rose-500' : 'bg-green-50 text-green-500'}`}>
-                      {notification.type === 'error' ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-800 mb-2">{notification.title}</h3>
-                    <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">{notification.message}</p>
-                    <button 
-                      onClick={() => setNotification({ ...notification, isOpen: false })}
-                      className="w-full py-3 text-sm font-bold text-white bg-slate-900 rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition"
-                    >
-                      {t.close}
-                    </button>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${notification.type === 'error' ? 'bg-rose-50 text-rose-500' : 'bg-green-50 text-green-500'}`}>{notification.type === 'error' ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}</div><h3 className="text-lg font-bold text-slate-800 mb-2">{notification.title}</h3><p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">{notification.message}</p><button onClick={() => setNotification({ ...notification, isOpen: false })} className="w-full py-3 text-sm font-bold text-white bg-slate-900 rounded-2xl hover:bg-slate-800 shadow-lg shadow-slate-200 transition">{t.close}</button>
                   </div>
                 </div>
               )}
 
-              {/* ACTIVITY LOG MODAL OVERLAY */}
               {showActivityLog && (
                 <div className="fixed inset-y-0 right-0 z-[60] w-full md:w-[400px] bg-white flex flex-col animate-in slide-in-from-right duration-300 shadow-2xl border-l border-slate-100">
-                  {/* Activity Log Header */}
-                  <div className="pt-12 md:pt-6 pb-4 px-6 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0">
-                      <div>
-                        <h2 className="text-2xl font-black text-slate-900 leading-tight">{t.activity}</h2>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{t.recentActions}</p>
-                      </div>
-                      <button onClick={() => setShowActivityLog(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition">
-                        <X className="w-6 h-6 text-slate-500" />
-                      </button>
-                  </div>
-                  
-                  {/* Activity Log Content */}
+                  <div className="pt-12 md:pt-6 pb-4 px-6 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0"><div><h2 className="text-2xl font-black text-slate-900 leading-tight">{t.activity}</h2><p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{t.recentActions}</p></div><button onClick={() => setShowActivityLog(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition"><X className="w-6 h-6 text-slate-500" /></button></div>
                   <div className="flex-1 overflow-y-auto p-6 space-y-3">
-                      {activityLog.length === 0 ? (
-                        <div className="text-center py-20 px-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/50">
-                          <div className="bg-white p-4 rounded-full inline-block mb-3 shadow-sm">
-                            <History className="w-8 h-8 text-slate-300" />
-                          </div>
-                          <p className="text-sm font-medium text-slate-400">No activities recorded yet.</p>
-                        </div>
-                      ) : (
+                      {activityLog.length === 0 ? <div className="text-center py-20 px-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/50"><div className="bg-white p-4 rounded-full inline-block mb-3 shadow-sm"><History className="w-8 h-8 text-slate-300" /></div><p className="text-sm font-medium text-slate-400">No activities recorded yet.</p></div> : 
                         activityLog.map((log) => {
-                          let icon = <Activity className="w-4 h-4 text-slate-500" />;
-                          let bgColor = 'bg-slate-50';
-                          let borderColor = 'border-slate-100';
-                          
+                          let icon = <Activity className="w-4 h-4 text-slate-500" />; let bgColor = 'bg-slate-50'; let borderColor = 'border-slate-100';
                           switch(log.type) {
-                            case 'pay': 
-                              icon = <CheckCircle className="w-4 h-4 text-green-600" />;
-                              bgColor = 'bg-green-50';
-                              borderColor = 'border-green-100';
-                              break;
-                            case 'add': 
-                              icon = <FilePlus className="w-4 h-4 text-indigo-600" />;
-                              bgColor = 'bg-indigo-50';
-                              borderColor = 'border-indigo-100';
-                              break;
-                            case 'unpay': 
-                              icon = <RotateCcw className="w-4 h-4 text-orange-500" />;
-                              bgColor = 'bg-orange-50';
-                              borderColor = 'border-orange-100';
-                              break;
-                            case 'delete': 
-                              icon = <Trash2 className="w-4 h-4 text-rose-500" />;
-                              bgColor = 'bg-rose-50';
-                              borderColor = 'border-rose-100';
-                              break;
-                            case 'edit':
-                                icon = <Edit2 className="w-4 h-4 text-blue-500" />;
-                                bgColor = 'bg-blue-50';
-                                borderColor = 'border-blue-100';
-                                break;
-                            case 'settings':
-                                icon = <Settings className="w-4 h-4 text-slate-600" />;
-                                bgColor = 'bg-slate-100';
-                                borderColor = 'border-slate-200';
-                                break;
+                            case 'pay': icon = <CheckCircle className="w-4 h-4 text-green-600" />; bgColor = 'bg-green-50'; borderColor = 'border-green-100'; break;
+                            case 'add': icon = <FilePlus className="w-4 h-4 text-indigo-600" />; bgColor = 'bg-indigo-50'; borderColor = 'border-indigo-100'; break;
+                            case 'unpay': icon = <RotateCcw className="w-4 h-4 text-orange-500" />; bgColor = 'bg-orange-50'; borderColor = 'border-orange-100'; break;
+                            case 'delete': icon = <Trash2 className="w-4 h-4 text-rose-500" />; bgColor = 'bg-rose-50'; borderColor = 'border-rose-100'; break;
+                            case 'edit': icon = <Edit2 className="w-4 h-4 text-blue-500" />; bgColor = 'bg-blue-50'; borderColor = 'border-blue-100'; break;
+                            case 'settings': icon = <Settings className="w-4 h-4 text-slate-600" />; bgColor = 'bg-slate-100'; borderColor = 'border-slate-200'; break;
                             default: break;
                           }
-
                           return (
-                            <div key={log.id} className={`flex gap-4 bg-white p-4 rounded-2xl border ${borderColor} shadow-sm items-start`}>
-                              <div className={`mt-1 p-2 rounded-xl h-fit ${bgColor}`}>
-                                  {icon}
-                              </div>
-                              <div>
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                                    {log.timestamp.toLocaleDateString()} • {log.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                  </p>
-                                  <p className="text-xs font-bold text-slate-800 mb-0.5">{log.title}</p>
-                                  <p className="text-xs text-slate-500 leading-snug">{log.details}</p>
-                              </div>
-                            </div>
+                            <div key={log.id} className={`flex gap-4 bg-white p-4 rounded-2xl border ${borderColor} shadow-sm items-start`}><div className={`mt-1 p-2 rounded-xl h-fit ${bgColor}`}>{icon}</div><div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{log.timestamp.toLocaleDateString()} • {log.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p><p className="text-xs font-bold text-slate-800 mb-0.5">{log.title}</p><p className="text-xs text-slate-500 leading-snug">{log.details}</p></div></div>
                           );
                         })
-                      )}
+                      }
                   </div>
                 </div>
               )}
@@ -1926,10 +773,9 @@
         const root = createRoot(document.getElementById('root'));
         root.render(<UtangTracker />);
 
-        // --- Standard Service Worker Registration ---
+        // --- Service Worker Registration ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Register the external sw.js file
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => console.log('SW registered'))
                     .catch(err => console.log('SW reg failed: ', err));

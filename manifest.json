@@ -3,17 +3,17 @@
   "short_name": "Debts",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f9fafb",
+  "background_color": "#F9FAFB",
   "theme_color": "#4f46e5",
-  "orientation": "portrait-primary",
+  "description": "Simple offline-capable debt management tool.",
   "icons": [
     {
-      "src": "./icon.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2843/2843004.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "./icon.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2843/2843004.png",
       "sizes": "512x512",
       "type": "image/png"
     }
