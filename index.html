@@ -6,7 +6,7 @@
     <title>Debt Tracker</title>
     
     <!-- PWA Manifest (Embedded for Single-File Standalone Support) -->
-    <!-- Updated start_url to ensure it re-opens correctly -->
+    <!-- Updated based on your manifest.json -->
     <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22Debt%20Tracker%22%2C%22short_name%22%3A%22Debts%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f9fafb%22%2C%22theme_color%22%3A%22%234f46e5%22%2C%22orientation%22%3A%22portrait%22%2C%22scope%22%3A%22%2F%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D'>
     
     <meta name="theme-color" content="#4f46e5">
@@ -1940,82 +1940,95 @@
 
         // --- Inline Service Worker for Single File PWA Support ---
         if ('serviceWorker' in navigator) {
-            // Enhanced SW logic with Caching
+            // Enhanced SW logic with Caching based on your uploaded sw.js
             const swContent = `
-                const CACHE_NAME = 'debt-tracker-v2';
+                const CACHE_NAME = 'debt-tracker-v1';
+                // Removed ./manifest.json from cache list since it's embedded in single-file version
                 const ASSETS_TO_CACHE = [
-                    './',
-                    './index.html'
+                  './', 
+                  './index.html'
                 ];
 
                 // Install event - Cache core assets
                 self.addEventListener('install', (event) => {
-                    event.waitUntil(
-                        caches.open(CACHE_NAME).then((cache) => {
-                            return cache.addAll(ASSETS_TO_CACHE);
-                        })
-                    );
-                    self.skipWaiting();
+                  event.waitUntil(
+                    caches.open(CACHE_NAME).then((cache) => {
+                      return cache.addAll(ASSETS_TO_CACHE);
+                    })
+                  );
+                  self.skipWaiting();
                 });
 
                 // Activate event - Cleanup old caches
                 self.addEventListener('activate', (event) => {
-                    event.waitUntil(
-                        caches.keys().then((cacheNames) => {
-                            return Promise.all(
-                                cacheNames.map((cacheName) => {
-                                    if (cacheName !== CACHE_NAME) {
-                                        return caches.delete(cacheName);
-                                    }
-                                })
-                            );
+                  event.waitUntil(
+                    caches.keys().then((cacheNames) => {
+                      return Promise.all(
+                        cacheNames.map((cacheName) => {
+                          if (cacheName !== CACHE_NAME) {
+                            return caches.delete(cacheName);
+                          }
                         })
-                    );
-                    self.clients.claim();
+                      );
+                    })
+                  );
+                  self.clients.claim();
                 });
 
                 // Fetch event - Cache First strategy for CDNs, Stale-While-Revalidate for local
                 self.addEventListener('fetch', (event) => {
-                    const url = new URL(event.request.url);
+                  const url = new URL(event.request.url);
 
-                    // Strategy for External CDNs (Tailwind, React, Lucide, Fonts, Icons)
-                    if (url.origin.includes('cdn.tailwindcss.com') || 
-                        url.origin.includes('unpkg.com') || 
-                        url.origin.includes('esm.sh') ||
-                        url.origin.includes('fonts.googleapis.com') ||
-                        url.origin.includes('fonts.gstatic.com') ||
-                        url.origin.includes('cdn-icons-png.flaticon.com')) {
-                        
-                        event.respondWith(
-                            caches.match(event.request).then((cachedResponse) => {
-                                if (cachedResponse) return cachedResponse;
-                                return fetch(event.request).then((response) => {
-                                    if (!response || response.status !== 200 && response.type !== 'opaque') return response;
-                                    const responseToCache = response.clone();
-                                    caches.open(CACHE_NAME).then((cache) => {
-                                        cache.put(event.request, responseToCache);
-                                    });
-                                    return response;
-                                });
-                            })
-                        );
-                        return;
-                    }
+                  // Strategy for External CDNs (Tailwind, React, Lucide, Fonts, Icons)
+                  // We want to cache these aggressively so the app works offline
+                  if (url.origin.includes('cdn.tailwindcss.com') || 
+                      url.origin.includes('unpkg.com') || 
+                      url.origin.includes('esm.sh') ||
+                      url.origin.includes('fonts.googleapis.com') ||
+                      url.origin.includes('fonts.gstatic.com') ||
+                      url.origin.includes('cdn-icons-png.flaticon.com')) {
+                      
+                     event.respondWith(
+                      caches.match(event.request).then((cachedResponse) => {
+                        if (cachedResponse) {
+                          return cachedResponse;
+                        }
+                        return fetch(event.request).then((response) => {
+                          // Check if we received a valid response
+                          if (!response || response.status !== 200 && response.type !== 'opaque') {
+                            return response;
+                          }
 
-                    // Strategy for local files: Stale-While-Revalidate
-                    event.respondWith(
-                        caches.match(event.request).then((cachedResponse) => {
-                            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                                caches.open(CACHE_NAME).then((cache) => {
-                                    cache.put(event.request, networkResponse.clone());
-                                });
-                                return networkResponse;
-                            }).catch(() => {
-                                return cachedResponse;
-                            });
-                            return cachedResponse || fetchPromise;
-                        })
+                          // Clone the response
+                          const responseToCache = response.clone();
+
+                          caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                          });
+
+                          return response;
+                        });
+                      })
                     );
+                    return;
+                  }
+
+                  // Strategy for local files (index.html): Stale-While-Revalidate
+                  // This ensures the user sees the cached version immediately but updates in background
+                  event.respondWith(
+                    caches.match(event.request).then((cachedResponse) => {
+                      const fetchPromise = fetch(event.request).then((networkResponse) => {
+                        caches.open(CACHE_NAME).then((cache) => {
+                          cache.put(event.request, networkResponse.clone());
+                        });
+                        return networkResponse;
+                      }).catch(() => {
+                          // If fetch fails (offline), return cached response if available
+                          return cachedResponse;
+                      });
+                      return cachedResponse || fetchPromise;
+                    })
+                  );
                 });
             `;
             const blob = new Blob([swContent], {type: 'text/javascript'});
@@ -2023,7 +2036,7 @@
 
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register(swUrl)
-                    .then(reg => console.log('SW registered'))
+                    .then(reg => console.log('SW registered: ', reg))
                     .catch(err => console.log('SW reg failed: ', err));
             });
         }
