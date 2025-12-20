@@ -1,19 +1,19 @@
 {
   "name": "Debt Tracker",
-  "short_name": "DebtTracker",
-  "start_url": "./",
+  "short_name": "Debts",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f9fafb",
   "theme_color": "#4f46e5",
-  "description": "A simple offline-capable debt tracking application.",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2843/2843004.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2843/2843004.png",
       "sizes": "512x512",
       "type": "image/png"
     }
