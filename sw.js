@@ -1,20 +1,22 @@
-const CACHE_NAME = 'debt-tracker-v3';
+const CACHE_NAME = 'debt-tracker-v4';
 const ASSETS_TO_CACHE = [
   './',
-  './index.html'
+  './index.html',
+  './manifest.json'
 ];
 
-// Install event - Cache core assets
+// 1. Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log('Opened cache');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
   self.skipWaiting();
 });
 
-// Activate event - Cleanup old caches
+// 2. Activate Event (Cleanup old caches)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -30,18 +32,17 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - Cache First strategy for CDNs, Stale-While-Revalidate for local
+// 3. Fetch Event
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Strategy for External CDNs (Tailwind, React, Lucide, Fonts, Icons)
-  // We want to cache these aggressively so the app works offline
+  // Strategy: Cache First for external CDNs (React, Tailwind, Icons)
   if (url.origin.includes('cdn.tailwindcss.com') || 
       url.origin.includes('unpkg.com') || 
       url.origin.includes('esm.sh') ||
       url.origin.includes('fonts.googleapis.com') ||
       url.origin.includes('fonts.gstatic.com') ||
-      url.origin.includes('cdn-icons-png.flaticon.com')) {
+      url.origin.includes('flaticon.com')) {
       
      event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
@@ -49,18 +50,13 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse;
         }
         return fetch(event.request).then((response) => {
-          // Check if we received a valid response
           if (!response || response.status !== 200 && response.type !== 'opaque') {
             return response;
           }
-
-          // Clone the response
           const responseToCache = response.clone();
-
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
-
           return response;
         });
       })
@@ -68,20 +64,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy for local files (index.html): Stale-While-Revalidate
-  // This ensures the user sees the cached version immediately but updates in background
+  // Strategy: Network First, fall back to Cache for local files (index.html)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((response) => {
+        // Update cache with new version
+        const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
+          cache.put(event.request, responseToCache);
         });
-        return networkResponse;
-      }).catch(() => {
-          // If fetch fails (offline), return cached response if available
-          return cachedResponse;
-      });
-      return cachedResponse || fetchPromise;
-    })
+        return response;
+      })
+      .catch(() => {
+        // If offline, return cached version
+        return caches.match(event.request);
+      })
   );
 });

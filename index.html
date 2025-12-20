@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Debt Tracker</title>
     
-    <!-- PWA Manifest (Embedded) -->
-    <!-- Updated start_url to ./index.html for reliability -->
-    <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22Debt%20Tracker%22%2C%22short_name%22%3A%22Debts%22%2C%22start_url%22%3A%22.%2Findex.html%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f9fafb%22%2C%22theme_color%22%3A%22%234f46e5%22%2C%22orientation%22%3A%22portrait%22%2C%22scope%22%3A%22.%2F%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D'>
+    <link rel="manifest" href="./manifest.json">
     
     <meta name="theme-color" content="#4f46e5">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,13 +13,10 @@
     <meta name="apple-mobile-web-app-title" content="Debts">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2843/2843004.png">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Custom Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -29,21 +24,9 @@
             font-family: 'Inter', sans-serif; 
             -webkit-tap-highlight-color: transparent;
         }
-        
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .scrollbar-hide {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
-
-        /* IOS Input Fixes */
-        input, select, textarea {
-            font-size: 16px !important; /* Prevents zoom on focus in iOS */
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        input, select, textarea { font-size: 16px !important; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -54,10 +37,15 @@
         import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
+        // Import Icons
         import { 
           Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share, ChevronLeft, ChevronRight
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
+        // --- PASTE YOUR ENTIRE REACT CODE HERE ---
+        // (I have hidden the long React code for brevity, but you must paste 
+        // the content of your script tag from your previous file here)
+        
         // --- TRANSLATIONS ---
         const translations = {
           en: {
