@@ -1266,7 +1266,7 @@
                 </div>
               </div>
 
-               {/* INSTALL APP BUTTON (Visible only if installable) */}
+               {/* INSTALL APP BANNER (Keep this for detailed instructions) */}
                {deferredPrompt && (
                   <div className="bg-gradient-to-r from-indigo-500 to-violet-600 p-6 rounded-3xl shadow-xl shadow-indigo-200 text-white flex items-center justify-between">
                       <div>
@@ -1426,7 +1426,18 @@
                       ))}
                   </div>
 
-                  <div className="mt-auto pt-6 border-t border-slate-100">
+                  <div className="mt-auto pt-6 border-t border-slate-100 space-y-2">
+                      {/* NEW: Install Button for Desktop Sidebar */}
+                      {deferredPrompt && (
+                          <button 
+                              onClick={handleInstallClick}
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-violet-600 shadow-lg shadow-indigo-200 hover:scale-105 transition-all"
+                          >
+                              <Smartphone className="w-5 h-5" />
+                              {t.installApp}
+                          </button>
+                      )}
+                      
                       <button 
                         onClick={() => setShowActivityLog(true)}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all"
@@ -1459,12 +1470,24 @@
                         {activeTab === 'settings' && t.settings}
                       </p>
                     </div>
-                    <button 
-                      onClick={() => setShowActivityLog(true)}
-                      className="p-3 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition active:scale-95"
-                    >
-                      <History className="w-5 h-5 text-slate-600" />
-                    </button>
+                    <div className="flex gap-2">
+                        {/* NEW: Install Button for Mobile Header */}
+                        {deferredPrompt && (
+                            <button 
+                                onClick={handleInstallClick}
+                                className="p-3 bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition active:scale-95"
+                                title={t.installApp}
+                            >
+                                <Smartphone className="w-5 h-5" />
+                            </button>
+                        )}
+                        <button 
+                          onClick={() => setShowActivityLog(true)}
+                          className="p-3 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 transition active:scale-95"
+                        >
+                          <History className="w-5 h-5 text-slate-600" />
+                        </button>
+                    </div>
                   </div>
 
                   {/* Desktop Header Title (Simple) */}
