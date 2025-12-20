@@ -6,7 +6,7 @@
     <title>Debt Tracker</title>
     
     <!-- PWA Manifest (Embedded for Single-File Standalone Support) -->
-    <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22Debt%20Tracker%22%2C%22short_name%22%3A%22Debts%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f9fafb%22%2C%22theme_color%22%3A%22%234f46e5%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D'>
+    <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22Debt%20Tracker%22%2C%22short_name%22%3A%22Debts%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f9fafb%22%2C%22theme_color%22%3A%22%234f46e5%22%2C%22orientation%22%3A%22portrait%22%2C%22scope%22%3A%22%2F%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2843%2F2843004.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D'>
     
     <meta name="theme-color" content="#4f46e5">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -54,7 +54,7 @@
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
         import { 
-          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share
+          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share, ChevronLeft, ChevronRight
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
         // --- TRANSLATIONS ---
@@ -63,6 +63,7 @@
             dashboard: "Dashboard",
             addRecord: "New Record",
             debtLogs: "My Debts",
+            calendar: "Calendar",
             settings: "Settings",
             totalUnpaid: "Outstanding",
             totalPaid: "Settled",
@@ -152,12 +153,15 @@
             installApp: "Install App",
             installDesc: "Add to Home Screen for easier access.",
             installIOS: "Install on iOS",
-            installIOSDesc: "Tap Share icon below, then 'Add to Home Screen'."
+            installIOSDesc: "Tap Share icon below, then 'Add to Home Screen'.",
+            paydayLegend: "Payday",
+            dueLegend: "Due Date"
           },
           tl: {
             dashboard: "Dashboard",
             addRecord: "Magdagdag",
             debtLogs: "Listahan",
+            calendar: "Kalendaryo",
             settings: "Settings",
             totalUnpaid: "Balanse",
             totalPaid: "Bayad Na",
@@ -247,7 +251,9 @@
             installApp: "I-install ang App",
             installDesc: "Ilagay sa Home Screen para madaling buksan.",
             installIOS: "Para sa iOS",
-            installIOSDesc: "Pindutin ang Share, at piliin ang 'Add to Home Screen'."
+            installIOSDesc: "Pindutin ang Share, at piliin ang 'Add to Home Screen'.",
+            paydayLegend: "Sahod",
+            dueLegend: "Bayarin"
           }
         };
 
@@ -287,6 +293,10 @@
           // Install Prompt State
           const [deferredPrompt, setDeferredPrompt] = useState(null);
           const [isIOS, setIsIOS] = useState(false);
+
+          // Calendar State
+          const [currentDate, setCurrentDate] = useState(new Date());
+          const [selectedDate, setSelectedDate] = useState(null);
 
           // --- PERSISTENT STATE ---
           const [lang, setLang] = useStickyState('debt_tracker_lang', 'en');
@@ -847,6 +857,199 @@
           const groupedLogs = getGroupedLogs();
           const ongoingLogs = groupedLogs.filter(g => !g.isFullyPaid).sort((a,b) => new Date(a.nextDue) - new Date(b.nextDue));
           const completedLogs = groupedLogs.filter(g => g.isFullyPaid).sort((a,b) => new Date(b.nextDue) - new Date(a.nextDue));
+
+          // --- CALENDAR LOGIC ---
+          const renderCalendar = () => {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Adjust so week starts on Sunday (0) or Monday (1)? Standard JS is Sunday=0. 
+            // We'll stick to Sunday start for now.
+            
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            const paddingDays = firstDayOfMonth; // 0 for Sunday
+            
+            const days = [];
+            
+            // Previous month padding
+            for(let i = paddingDays; i > 0; i--) {
+                days.push({ day: prevMonthDays - i + 1, type: 'prev', dateObj: new Date(year, month - 1, prevMonthDays - i + 1) });
+            }
+            
+            // Current month
+            for(let i = 1; i <= daysInMonth; i++) {
+                days.push({ day: i, type: 'current', dateObj: new Date(year, month, i) });
+            }
+            
+            // Next month padding to fill 6 rows (42 days)
+            const remaining = 42 - days.length;
+            for(let i = 1; i <= remaining; i++) {
+                days.push({ day: i, type: 'next', dateObj: new Date(year, month + 1, i) });
+            }
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+            const isToday = (d) => {
+                const today = new Date();
+                return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+            };
+
+            const isSelected = (d) => {
+                if(!selectedDate) return false;
+                return d.getDate() === selectedDate.getDate() && d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
+            };
+
+            // Get events for a date
+            const getEventsForDate = (date) => {
+                const day = date.getDate();
+                
+                // Check if Payday
+                const isPayday = paydays.includes(day);
+                
+                // Check debts due
+                const dateStr = (new Date(date.getTime() - (date.getTimezoneOffset() * 60000))).toISOString().slice(0, 10);
+                const dueDebts = debts.filter(d => d.dueDate === dateStr && !d.isPaid);
+                
+                return { isPayday, dueDebts };
+            };
+
+            return (
+                <div className="animate-in fade-in duration-500 pb-20 md:pb-0">
+                    {/* Calendar Header */}
+                    <div className="flex items-center justify-between mb-6 px-2">
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                            {monthNames[month]} <span className="text-slate-400 font-medium">{year}</span>
+                        </h2>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm">
+                                <ChevronLeft className="w-5 h-5 text-slate-600" />
+                            </button>
+                            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 bg-indigo-50 text-indigo-600 font-bold text-xs rounded-xl hover:bg-indigo-100 transition">
+                                Today
+                            </button>
+                            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm">
+                                <ChevronRight className="w-5 h-5 text-slate-600" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="bg-white rounded-3xl p-4 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        {/* Weekdays */}
+                        <div className="grid grid-cols-7 mb-4">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                <div key={day} className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    {day}
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* Days */}
+                        <div className="grid grid-cols-7 gap-y-4 gap-x-2">
+                            {days.map((item, index) => {
+                                const { isPayday, dueDebts } = getEventsForDate(item.dateObj);
+                                const hasDebt = dueDebts.length > 0;
+                                
+                                return (
+                                    <div 
+                                        key={index} 
+                                        onClick={() => setSelectedDate(item.dateObj)}
+                                        className={`flex flex-col items-center justify-start h-10 md:h-14 relative cursor-pointer group
+                                            ${item.type !== 'current' ? 'opacity-30' : ''}
+                                        `}
+                                    >
+                                        <span className={`text-xs font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all
+                                            ${isSelected(item.dateObj) ? 'bg-slate-900 text-white shadow-lg scale-110' : 
+                                              isToday(item.dateObj) ? 'bg-indigo-100 text-indigo-600' : 'text-slate-700 group-hover:bg-slate-50'}
+                                        `}>
+                                            {item.day}
+                                        </span>
+                                        
+                                        <div className="flex gap-1 mt-1">
+                                            {isPayday && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-sm"></div>
+                                            )}
+                                            {hasDebt && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm"></div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex gap-4 mt-4 px-2 justify-center">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">{t.paydayLegend}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">{t.dueLegend}</span>
+                        </div>
+                    </div>
+
+                    {/* Selected Date Details */}
+                    {selectedDate && (
+                        <div className="mt-6 animate-in slide-in-from-bottom-4 duration-300">
+                            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 px-1 border-l-4 border-indigo-500 pl-3">
+                                {selectedDate.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            </h3>
+                            
+                            <div className="space-y-3">
+                                {(() => {
+                                    const { isPayday, dueDebts } = getEventsForDate(selectedDate);
+                                    if (!isPayday && dueDebts.length === 0) {
+                                        return (
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                                                <p className="text-xs text-slate-400 font-medium italic">Nothing scheduled for this day.</p>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <>
+                                            {isPayday && (
+                                                <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-4 rounded-2xl shadow-lg shadow-purple-200 text-white flex items-center gap-3">
+                                                    <div className="bg-white/20 p-2 rounded-xl">
+                                                        <Wallet className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm">Payday!</p>
+                                                        <p className="text-xs text-purple-100 opacity-90">Time to budget.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {dueDebts.map(debt => (
+                                                <div key={debt.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-800">{debt.title}</p>
+                                                        <span className="text-[10px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded font-bold uppercase tracking-wide">Due Today</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-bold text-slate-800">{formatPHP(debt.amount)}</p>
+                                                        <button 
+                                                            onClick={() => confirmTogglePaid(debt.id, false)}
+                                                            className="text-[10px] font-bold text-indigo-600 hover:underline mt-1"
+                                                        >
+                                                            Mark Paid
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+          };
 
           // --- RENDERERS ---
           const renderDashboard = () => (
@@ -1410,6 +1613,7 @@
                           { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
                           { id: 'add', icon: PlusCircle, label: t.add },
                           { id: 'logs', icon: List, label: t.logs },
+                          { id: 'calendar', icon: Calendar, label: t.calendar },
                           { id: 'settings', icon: Settings, label: t.settings },
                       ].map((item) => (
                           <button
@@ -1467,6 +1671,7 @@
                         {activeTab === 'dashboard' && t.dashboard} 
                         {activeTab === 'add' && t.add} 
                         {activeTab === 'logs' && t.logs} 
+                        {activeTab === 'calendar' && t.calendar} 
                         {activeTab === 'settings' && t.settings}
                       </p>
                     </div>
@@ -1497,6 +1702,7 @@
                             {activeTab === 'dashboard' && t.dashboard}
                             {activeTab === 'add' && t.addRecord}
                             {activeTab === 'logs' && t.debtLogs}
+                            {activeTab === 'calendar' && t.calendar}
                             {activeTab === 'settings' && t.settingsHeader}
                         </h2>
                         <p className="text-slate-400 text-sm font-medium">Manage your finances efficiently</p>
@@ -1513,6 +1719,7 @@
                     {activeTab === 'dashboard' && renderDashboard()}
                     {activeTab === 'add' && renderAddForm()}
                     {activeTab === 'logs' && renderLogs()}
+                    {activeTab === 'calendar' && renderCalendar()}
                     {activeTab === 'settings' && renderSettings()}
                   </div>
 
@@ -1527,6 +1734,9 @@
                       </button>
                       <button onClick={() => setActiveTab('logs')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'logs' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
                         <List className="w-6 h-6" strokeWidth={2.5} />
+                      </button>
+                      <button onClick={() => setActiveTab('calendar')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'calendar' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
+                        <Calendar className="w-6 h-6" strokeWidth={2.5} />
                       </button>
                       <button onClick={() => setActiveTab('settings')} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl transition-all duration-300 ${activeTab === 'settings' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
                         <Settings className="w-6 h-6" strokeWidth={2.5} />
@@ -1727,16 +1937,31 @@
         const root = createRoot(document.getElementById('root'));
         root.render(<UtangTracker />);
 
-        // --- Service Worker Registration ---
+        // --- Inline Service Worker for Single File PWA Support ---
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                .then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                })
-                .catch(error => {
-                    console.log('ServiceWorker registration failed: ', error);
+            const swContent = `
+                self.addEventListener('install', (e) => {
+                    console.log('[SW] Install');
+                    e.waitUntil(self.skipWaiting());
                 });
+                self.addEventListener('activate', (e) => {
+                    console.log('[SW] Activate');
+                    e.waitUntil(self.clients.claim());
+                });
+                self.addEventListener('fetch', (e) => {
+                    // Pass-through fetch for external resources
+                    e.respondWith(fetch(e.request).catch(() => {
+                        return new Response('Offline - Content not available');
+                    }));
+                });
+            `;
+            const blob = new Blob([swContent], {type: 'text/javascript'});
+            const swUrl = URL.createObjectURL(blob);
+
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(swUrl)
+                    .then(reg => console.log('SW registered: ', reg))
+                    .catch(err => console.log('SW reg failed: ', err));
             });
         }
     </script>
