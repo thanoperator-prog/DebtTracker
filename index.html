@@ -52,7 +52,7 @@
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
         import { 
-          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split
+          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
         // --- TRANSLATIONS ---
@@ -146,7 +146,11 @@
             futureSchedule: "Future Schedule",
             itemCount: "items",
             splitPayment: "Split across paydays?",
-            splitInfo: "Divides monthly amount equally per payday."
+            splitInfo: "Divides monthly amount equally per payday.",
+            installApp: "Install App",
+            installDesc: "Add to Home Screen for easier access.",
+            installIOS: "Install on iOS",
+            installIOSDesc: "Tap Share icon below, then 'Add to Home Screen'."
           },
           tl: {
             dashboard: "Dashboard",
@@ -237,7 +241,11 @@
             futureSchedule: "Mga Susunod",
             itemCount: "bagay",
             splitPayment: "Hatiin sa mga sahod?",
-            splitInfo: "Hahatiin ang monthly sa bawat payday."
+            splitInfo: "Hahatiin ang monthly sa bawat payday.",
+            installApp: "I-install ang App",
+            installDesc: "Ilagay sa Home Screen para madaling buksan.",
+            installIOS: "Para sa iOS",
+            installIOSDesc: "Pindutin ang Share, at piliin ang 'Add to Home Screen'."
           }
         };
 
@@ -273,6 +281,10 @@
           const [showActivityLog, setShowActivityLog] = useState(false);
           const [expandedDashboardCard, setExpandedDashboardCard] = useState(null);
           const [expandedGroups, setExpandedGroups] = useState({}); 
+          
+          // Install Prompt State
+          const [deferredPrompt, setDeferredPrompt] = useState(null);
+          const [isIOS, setIsIOS] = useState(false);
 
           // --- PERSISTENT STATE ---
           const [lang, setLang] = useStickyState('debt_tracker_lang', 'en');
@@ -335,11 +347,42 @@
           const [newDebtTerms, setNewDebtTerms] = useState(1); 
           const [enableSplit, setEnableSplit] = useState(false);
 
+          // --- PWA INSTALL EFFECT ---
+          useEffect(() => {
+            // Check if iOS
+            const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            setIsIOS(iOS);
+
+            const handler = (e) => {
+              // Prevent the mini-infobar from appearing on mobile
+              e.preventDefault();
+              // Stash the event so it can be triggered later.
+              setDeferredPrompt(e);
+            };
+
+            window.addEventListener('beforeinstallprompt', handler);
+
+            return () => window.removeEventListener('beforeinstallprompt', handler);
+          }, []);
+
+          const handleInstallClick = async () => {
+            if (!deferredPrompt) return;
+            // Show the install prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            // Optionally, send analytics event with outcome of user choice
+            console.log(`User response to the install prompt: ${outcome}`);
+            // We've used the prompt, and can't use it again, discard it
+            setDeferredPrompt(null);
+          };
+
           // --- HELPERS ---
           const formatPHP = (amount) => {
             return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(amount);
           };
 
+          // ... (rest of helpers like formatDate, getNextPaydayDate etc. remain same) ...
           const formatDate = (dateString, options = {}) => {
             if (!dateString) return '';
             const date = new Date(dateString);
@@ -690,6 +733,7 @@
           const totalPaid = debts.filter(d => d.isPaid).reduce((sum, d) => sum + d.amount, 0);
 
           const getDashboardGroups = () => {
+            // ... (Dashboard grouping logic remains same)
             const groups = {};
             debts.filter(d => !d.isPaid).forEach(d => {
                 const budgetDay = getBudgetSourceDay(d.dueDate, paydays);
@@ -726,7 +770,7 @@
                     cardGroups.push(group);
                 } else {
                     if (!hasFoundNext) {
-                        group.status = 'upcoming'; // Next Payment
+                        group.status = 'upcoming'; 
                         cardGroups.push(group);
                         hasFoundNext = true;
                     } else {
@@ -805,7 +849,6 @@
           // --- RENDERERS ---
           const renderDashboard = () => (
             <div className="space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0">
-              
               {/* Overview Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-5 relative overflow-hidden shadow-lg shadow-indigo-200">
@@ -1220,6 +1263,43 @@
                   <button onClick={() => setLang('tl')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'tl' ? 'bg-white shadow text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>PH</button>
                 </div>
               </div>
+
+               {/* INSTALL APP BUTTON (Visible only if installable) */}
+               {deferredPrompt && (
+                  <div className="bg-gradient-to-r from-indigo-500 to-violet-600 p-6 rounded-3xl shadow-xl shadow-indigo-200 text-white flex items-center justify-between">
+                      <div>
+                          <h2 className="text-lg font-bold mb-1">{t.installApp}</h2>
+                          <p className="text-xs text-indigo-100 font-medium opacity-90">{t.installDesc}</p>
+                      </div>
+                      <button 
+                          onClick={handleInstallClick}
+                          className="bg-white text-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:scale-105 transition active:scale-95 flex items-center gap-2"
+                      >
+                          <Smartphone className="w-4 h-4" />
+                          Install
+                      </button>
+                  </div>
+               )}
+
+               {/* iOS INSTALL INSTRUCTIONS (Visible only on iOS) */}
+               {isIOS && (
+                  <div className="bg-slate-800 p-6 rounded-3xl shadow-xl text-white">
+                      <div className="flex items-center gap-3 mb-3">
+                          <div className="p-2 bg-white/10 rounded-xl">
+                              <Share className="w-5 h-5" />
+                          </div>
+                          <div>
+                              <h2 className="text-lg font-bold">{t.installIOS}</h2>
+                          </div>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed font-medium mb-4">
+                          {t.installIOSDesc}
+                      </p>
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-900/50 p-2 rounded-lg w-fit">
+                          Safari Required
+                      </div>
+                  </div>
+               )}
 
                {/* Data Management */}
                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
