@@ -52,7 +52,7 @@
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
         import { 
-          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays
+          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
         // --- TRANSLATIONS ---
@@ -144,7 +144,9 @@
             errorTitle: "Error",
             successTitle: "Success",
             futureSchedule: "Future Schedule",
-            itemCount: "items"
+            itemCount: "items",
+            splitPayment: "Split across paydays?",
+            splitInfo: "Divides monthly amount equally per payday."
           },
           tl: {
             dashboard: "Dashboard",
@@ -233,7 +235,9 @@
             errorTitle: "May Error",
             successTitle: "Tagumpay",
             futureSchedule: "Mga Susunod",
-            itemCount: "bagay"
+            itemCount: "bagay",
+            splitPayment: "Hatiin sa mga sahod?",
+            splitInfo: "Hahatiin ang monthly sa bawat payday."
           }
         };
 
@@ -329,6 +333,7 @@
           const [newDebtAmount, setNewDebtAmount] = useState('');
           const [newDebtDate, setNewDebtDate] = useState(new Date().toISOString().split('T')[0]);
           const [newDebtTerms, setNewDebtTerms] = useState(1); 
+          const [enableSplit, setEnableSplit] = useState(false);
 
           // --- HELPERS ---
           const formatPHP = (amount) => {
@@ -459,31 +464,76 @@
 
             const terms = parseInt(newDebtTerms) || 1;
             const monthlyAmount = parseFloat(newDebtAmount);
-            const dueDates = getMonthlyDueDates(newDebtDate, terms);
-            const newDebts = [];
             const parentId = Date.now(); 
+            const newDebts = [];
 
-            dueDates.forEach((date, index) => {
-              newDebts.push({
-                id: Date.now() + index,
-                parentId: parentId,
-                title: newDebtName,
-                amount: monthlyAmount,
-                dateIncurred: newDebtDate,
-                dueDate: date,
-                isPaid: false,
-                termIndex: index,
-                totalTerms: terms
-              });
-            });
+            if (enableSplit && paydays.length > 1) {
+                // SPLIT LOGIC
+                const splitAmount = monthlyAmount / paydays.length;
+                const sortedPaydays = [...paydays].sort((a, b) => a - b);
+                
+                for (let i = 1; i <= terms; i++) {
+                    // Determine the target month for this installment index
+                    let termBaseDate = new Date(newDebtDate);
+                    termBaseDate.setHours(0,0,0,0);
+                    termBaseDate.setMonth(termBaseDate.getMonth() + i);
+                    
+                    // Create a sub-term for EACH payday in that month
+                    sortedPaydays.forEach((day, pIndex) => {
+                        let targetYear = termBaseDate.getFullYear();
+                        let targetMonth = termBaseDate.getMonth();
+                        
+                        // Construct exact date for this payday
+                        let d = new Date(targetYear, targetMonth, day);
+                        // Handle End of Month overflow (e.g. Feb 30 -> Feb 28/29)
+                        if (d.getMonth() !== targetMonth) {
+                            d = new Date(targetYear, targetMonth + 1, 0);
+                        }
+                        
+                        const offset = d.getTimezoneOffset() * 60000;
+                        const localISOTime = (new Date(d - offset)).toISOString().slice(0, 10);
+
+                        newDebts.push({
+                            id: Date.now() + Math.random(), // Ensure unique ID
+                            parentId: parentId,
+                            title: newDebtName, 
+                            amount: splitAmount,
+                            dateIncurred: newDebtDate,
+                            dueDate: localISOTime,
+                            isPaid: false,
+                            termIndex: (i - 1) * paydays.length + pIndex,
+                            totalTerms: terms * paydays.length
+                        });
+                    });
+                }
+                logAction('add', newDebtName, `${formatPHP(monthlyAmount)}/mo (Split) for ${terms} months`);
+
+            } else {
+                // NORMAL LOGIC
+                const dueDates = getMonthlyDueDates(newDebtDate, terms);
+                dueDates.forEach((date, index) => {
+                  newDebts.push({
+                    id: Date.now() + index,
+                    parentId: parentId,
+                    title: newDebtName,
+                    amount: monthlyAmount,
+                    dateIncurred: newDebtDate,
+                    dueDate: date,
+                    isPaid: false,
+                    termIndex: index,
+                    totalTerms: terms
+                  });
+                });
+                logAction('add', newDebtName, `${formatPHP(monthlyAmount)}/mo for ${terms} months`);
+            }
 
             setDebts([...newDebts, ...debts]);
-            logAction('add', newDebtName, `${formatPHP(monthlyAmount)}/mo for ${terms} months`);
             
             setNewDebtName('');
             setNewDebtAmount('');
             setNewDebtDate(new Date().toISOString().split('T')[0]);
             setNewDebtTerms(1);
+            setEnableSplit(false); // Reset toggle
             setActiveTab('logs');
           };
 
@@ -940,6 +990,25 @@
                       <input type="number" step="0.01" placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-8 pr-4 py-3.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-slate-300 appearance-none" value={newDebtAmount} onChange={(e) => setNewDebtAmount(e.target.value)} required />
                     </div>
                   </div>
+                  
+                  {/* Split Toggle - Only show if multiple paydays */}
+                  {paydays.length > 1 && (
+                      <div className="flex items-center justify-between bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100 cursor-pointer" onClick={() => setEnableSplit(!enableSplit)}>
+                          <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-xl transition-colors ${enableSplit ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                  <Split className="w-4 h-4" />
+                              </div>
+                              <div>
+                                  <p className="text-xs font-bold text-slate-700">{t.splitPayment}</p>
+                                  <p className="text-[10px] text-slate-400 leading-tight">{t.splitInfo}</p>
+                              </div>
+                          </div>
+                          <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${enableSplit ? 'bg-indigo-500' : 'bg-slate-200'}`}>
+                              <div className={`bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${enableSplit ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                          </div>
+                      </div>
+                  )}
+
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.terms}</label>
                     <div className="relative">
