@@ -22,8 +22,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim()); // Takes control of the page immediately
 });
 
+// This block is MANDATORY for the "Install" button to appear
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
   );
 });
