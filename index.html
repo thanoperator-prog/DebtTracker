@@ -52,7 +52,7 @@
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         
         import { 
-          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload
+          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
         // --- TRANSLATIONS ---
@@ -142,7 +142,9 @@
             restoreSuccess: "Data restored successfully.",
             restoreError: "Invalid backup file or corrupt data.",
             errorTitle: "Error",
-            successTitle: "Success"
+            successTitle: "Success",
+            futureSchedule: "Future Schedule",
+            itemCount: "items"
           },
           tl: {
             dashboard: "Dashboard",
@@ -229,7 +231,9 @@
             restoreSuccess: "Matagumpay na nai-restore.",
             restoreError: "Hindi valid ang file o sira ang data.",
             errorTitle: "May Error",
-            successTitle: "Tagumpay"
+            successTitle: "Tagumpay",
+            futureSchedule: "Mga Susunod",
+            itemCount: "bagay"
           }
         };
 
@@ -237,12 +241,9 @@
         function useStickyState(key, defaultValue) {
             const [value, setValue] = useState(() => {
                 const stickyValue = window.localStorage.getItem(key);
-                // Handle parsing errors or missing data gracefully
                 if (stickyValue !== null && stickyValue !== 'undefined') {
                     try {
                         const parsed = JSON.parse(stickyValue);
-                        // For dates in activity log, we might need to revive them, but for now string is fine
-                        // If it's the activity log, we need to convert timestamp strings back to Date objects
                         if (key === 'debt_tracker_activity') {
                             return parsed.map(log => ({...log, timestamp: new Date(log.timestamp)}));
                         }
@@ -660,52 +661,58 @@
             let sortedKeys = Object.keys(groups).sort((a,b) => new Date(a) - new Date(b));
             const today = new Date();
             today.setHours(0,0,0,0);
-            const finalDisplayList = [];
-            let hasFoundUpcoming = false;
+            
+            const cardGroups = [];
+            const listGroups = [];
+            let hasFoundNext = false;
             
             sortedKeys.forEach(key => {
                 const groupDate = new Date(key);
                 groupDate.setHours(0,0,0,0); 
+                const group = groups[key];
 
                 if (groupDate < today) {
-                    groups[key].status = 'overdue';
-                    finalDisplayList.push(groups[key]);
+                    group.status = 'overdue';
+                    cardGroups.push(group);
                 } else {
-                    if (!hasFoundUpcoming) {
-                        groups[key].status = 'upcoming';
-                        finalDisplayList.push(groups[key]);
-                        hasFoundUpcoming = true;
+                    if (!hasFoundNext) {
+                        group.status = 'upcoming'; // Next Payment
+                        cardGroups.push(group);
+                        hasFoundNext = true;
+                    } else {
+                        group.status = 'future';
+                        listGroups.push(group);
                     }
                 }
             });
 
-            if (finalDisplayList.length === 0) {
-              let nearestDay = null;
-              let minDiff = Infinity;
-              paydays.forEach(p => {
-                  const nextDate = getNextPaydayDate(p);
-                  const diff = nextDate - today;
-                  if (diff < minDiff) {
-                      minDiff = diff;
-                      nearestDay = { date: nextDate, day: p };
-                  }
-              });
-              if (nearestDay) {
-                  const offset = nearestDay.date.getTimezoneOffset() * 60000;
-                  const dateStr = (new Date(nearestDay.date - offset)).toISOString().slice(0, 10);
-                  finalDisplayList.push({
-                      dateStr: dateStr,
-                      dayLabel: nearestDay.day,
-                      amount: 0,
-                      status: 'upcoming',
-                      items: []
+            if (cardGroups.length === 0 && listGroups.length === 0) {
+                  let nearestDay = null;
+                  let minDiff = Infinity;
+                  paydays.forEach(p => {
+                      const nextDate = getNextPaydayDate(p);
+                      const diff = nextDate - today;
+                      if (diff < minDiff) {
+                          minDiff = diff;
+                          nearestDay = { date: nextDate, day: p };
+                      }
                   });
-              }
+                  if (nearestDay) {
+                      const offset = nearestDay.date.getTimezoneOffset() * 60000;
+                      const dateStr = (new Date(nearestDay.date - offset)).toISOString().slice(0, 10);
+                      cardGroups.push({
+                          dateStr: dateStr,
+                          dayLabel: nearestDay.day,
+                          amount: 0,
+                          status: 'upcoming',
+                          items: []
+                      });
+                  }
             }
-            return finalDisplayList;
+            return { cards: cardGroups, list: listGroups };
           };
 
-          const dashboardCards = getDashboardGroups();
+          const dashboardData = getDashboardGroups();
 
           const getGroupedLogs = () => {
             const groups = {};
@@ -773,13 +780,14 @@
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {/* --- MAIN CARDS (Overdue + Next) --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
                   {paydays.length === 0 ? (
                     <div className="col-span-full text-center p-8 border border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
                       <p className="text-sm text-slate-400 font-medium">Please configure Paydays in Setup.</p>
                     </div>
                   ) : (
-                    dashboardCards.map((card, idx) => {
+                    dashboardData.cards.map((card, idx) => {
                       const isOverdue = card.status === 'overdue';
                       const hasAmount = card.amount > 0;
                       const isExpanded = expandedDashboardCard === idx;
@@ -856,6 +864,37 @@
                     })
                   )}
                 </div>
+
+                {/* --- FUTURE LIST --- */}
+                {dashboardData.list.length > 0 && (
+                    <div className="animate-in slide-in-from-bottom-4 duration-500 delay-100">
+                        <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
+                           <CalendarDays className="w-4 h-4 text-indigo-500" /> 
+                           {t.futureSchedule}
+                        </h3>
+                        <div className="space-y-2">
+                            {dashboardData.list.map((group, idx) => (
+                                <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center bg-indigo-50 text-indigo-600 font-bold p-2.5 rounded-xl min-w-[50px]">
+                                            <span className="text-[10px] uppercase text-indigo-400 leading-none">Day</span>
+                                            <span className="text-lg leading-none mt-0.5">{group.dayLabel}</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-800">
+                                                {formatDate(group.dateStr, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                                                {group.items.length} {t.itemCount}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="font-bold text-slate-800 text-lg">{formatPHP(group.amount)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
               </div>
             </div>
           );
