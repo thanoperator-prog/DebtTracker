@@ -5,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Debt Tracker</title>
     
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Debts">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-
+    
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -21,6 +17,14 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         input, select, textarea { font-size: 16px !important; }
+        
+        /* Animation Utilities */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .animate-in { animation-fill-mode: forwards; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        .slide-in-from-bottom-4 { animation: slideUp 0.5s ease-out; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -31,12 +35,9 @@
         import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         import { 
-          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share
+          Calendar, Plus, Trash2, CheckCircle, Wallet, LayoutDashboard, PlusCircle, List, Layers, Settings, Sparkles, TrendingDown, CreditCard, Globe, AlertCircle, ArrowRight, ChevronDown, ChevronUp, Clock, Check, X, AlertTriangle, Tag, History, Activity, ArrowUpRight, RotateCcw, FilePlus, Edit2, Pencil, Menu, Sidebar, Download, Upload, CalendarDays, Split, Smartphone, Share, Bell, BellRing
         } from 'https://esm.sh/lucide-react@0.294.0?bundle';
 
-        // ... PASTE THE REST OF YOUR REACT CODE HERE ... 
-        // (Copy everything from "const translations = {..." down to "root.render(<UtangTracker />);" from your original file)
-        
         // --- TRANSLATIONS ---
         const translations = {
           en: {
@@ -128,7 +129,13 @@
             futureSchedule: "Future Schedule",
             itemCount: "items",
             splitPayment: "Split across paydays?",
-            splitInfo: "Divides monthly amount equally per payday."
+            splitInfo: "Divides monthly amount equally per payday.",
+            enableNotifs: "Enable Daily Reminders",
+            notifsEnabled: "Reminders Active",
+            notifsDesc: "Get notified daily about overdue payments.",
+            permissionDenied: "Permission Denied",
+            notifTitle: "Payment Reminder",
+            notifBody: "You have overdue or due payments today!"
           },
           tl: {
             dashboard: "Dashboard",
@@ -219,7 +226,13 @@
             futureSchedule: "Mga Susunod",
             itemCount: "bagay",
             splitPayment: "Hatiin sa mga sahod?",
-            splitInfo: "Hahatiin ang monthly sa bawat payday."
+            splitInfo: "Hahatiin ang monthly sa bawat payday.",
+            enableNotifs: "I-on ang Paalala",
+            notifsEnabled: "Naka-on ang Paalala",
+            notifsDesc: "Makatanggap ng notipikasyon sa mga overdue.",
+            permissionDenied: "Hindi Pinayagan",
+            notifTitle: "Paalala sa Bayarin",
+            notifBody: "May mga dapat bayaran ka ngayon o overdue na!"
           }
         };
 
@@ -316,6 +329,7 @@
           const [newDebtDate, setNewDebtDate] = useState(new Date().toISOString().split('T')[0]);
           const [newDebtTerms, setNewDebtTerms] = useState(1); 
           const [enableSplit, setEnableSplit] = useState(false);
+          const [notifPermission, setNotifPermission] = useState('default');
 
           // --- HELPERS ---
           const formatPHP = (amount) => {
@@ -433,6 +447,83 @@
           const showAlert = (title, message, type = 'success') => {
              setNotification({ isOpen: true, title, message, type });
           };
+
+          // --- NOTIFICATION LOGIC ---
+          useEffect(() => {
+              if ("Notification" in window) {
+                  setNotifPermission(Notification.permission);
+              }
+          }, []);
+
+          useEffect(() => {
+              const checkNotifications = () => {
+                  if (!("Notification" in window)) return;
+
+                  // 1. Check if permission is granted
+                  if (Notification.permission !== "granted") return;
+
+                  // 2. Check if we already notified today
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const lastNotif = window.localStorage.getItem('debt_tracker_last_notif');
+                  
+                  if (lastNotif === todayStr) return;
+
+                  // 3. Find overdue or due today items
+                  const pendingDebts = debts.filter(d => !d.isPaid);
+                  const dueToday = pendingDebts.filter(d => d.dueDate === todayStr);
+                  const overdue = pendingDebts.filter(d => d.dueDate < todayStr);
+                  const count = dueToday.length + overdue.length;
+
+                  if (count > 0) {
+                      // 4. Send Notification
+                      const title = t.notifTitle;
+                      let bodyText = "";
+                      
+                      if(overdue.length > 0) {
+                        bodyText += `${overdue.length} overdue`;
+                      }
+                      if(dueToday.length > 0) {
+                        bodyText += (bodyText ? " and " : "") + `${dueToday.length} due today`;
+                      }
+                      bodyText += ". Check your app.";
+
+                      try {
+                          new Notification(title, { 
+                              body: bodyText, 
+                              icon: 'icons/icon-192.png',
+                              tag: 'debt-reminder' // Replace existing notification with same tag
+                          });
+                          
+                          // 5. Update last notification date
+                          window.localStorage.setItem('debt_tracker_last_notif', todayStr);
+                      } catch (e) {
+                          console.error("Notification failed", e);
+                      }
+                  }
+              };
+
+              // Run check on mount and when debts change (in case user updates something, though we gate by date)
+              checkNotifications();
+          }, [debts, lang]);
+
+          const requestNotificationPermission = () => {
+              if (!("Notification" in window)) {
+                  showAlert("Error", "This browser does not support desktop notifications.", "error");
+                  return;
+              }
+
+              Notification.requestPermission().then((permission) => {
+                  setNotifPermission(permission);
+                  if (permission === "granted") {
+                      showAlert("Success", "Reminders enabled! You will be notified daily for overdue items.", "success");
+                      // Reset the 'last_notif' so they can test it immediately if they have overdue items
+                      window.localStorage.removeItem('debt_tracker_last_notif');
+                  } else if (permission === "denied") {
+                       showAlert("Permission Denied", "You blocked notifications. Please enable them in your browser settings.", "error");
+                  }
+              });
+          };
+
 
           // --- HANDLERS ---
           const handleAddDebt = (e) => {
@@ -1203,6 +1294,35 @@
                 </div>
               </div>
 
+               {/* Notifications Permission */}
+               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+                    <div className="mb-4">
+                        <h2 className="text-lg font-bold text-slate-800 mb-1">{t.notifsEnabled}</h2>
+                        <p className="text-xs text-slate-400 font-medium">{t.notifsDesc}</p>
+                    </div>
+                    <div>
+                         {notifPermission === 'granted' ? (
+                             <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-2xl border border-green-100">
+                                <BellRing className="w-5 h-5" />
+                                <span className="text-sm font-bold">{t.notifsEnabled}</span>
+                             </div>
+                         ) : notifPermission === 'denied' ? (
+                             <div className="flex items-center gap-2 p-3 bg-rose-50 text-rose-700 rounded-2xl border border-rose-100">
+                                <Bell className="w-5 h-5" />
+                                <span className="text-sm font-bold">{t.permissionDenied}</span>
+                             </div>
+                         ) : (
+                             <button 
+                                onClick={requestNotificationPermission}
+                                className="w-full flex items-center justify-center gap-2 p-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition"
+                             >
+                                <Bell className="w-5 h-5" />
+                                {t.enableNotifs}
+                             </button>
+                         )}
+                    </div>
+               </div>
+
                {/* Data Management */}
                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
                     <div className="mb-4">
@@ -1605,16 +1725,6 @@
 
         const root = createRoot(document.getElementById('root'));
         root.render(<UtangTracker />);
-    </script>
-    
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered', reg))
-            .catch(err => console.log('Service Worker registration failed', err));
-        });
-      }
     </script>
 </body>
 </html>
